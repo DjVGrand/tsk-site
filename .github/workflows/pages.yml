@@ -1,0 +1,59 @@
+name: Публикация сайта
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Скачать шрифты и three.js
+        run: |
+          mkdir -p /tmp/deps && cd /tmp/deps && npm init -y >/dev/null
+          npm install --no-audit --no-fund three@0.128.0 @fontsource/golos-text@5 @fontsource/russo-one@5 @fontsource/jetbrains-mono@5
+      - name: Собрать папку сайта
+        run: |
+          mkdir -p _site/vendor/three _site/vendor/fonts
+          cp -r index.html eng _site/
+          [ -f CNAME ] && cp CNAME _site/ || true
+          cp /tmp/deps/node_modules/three/build/three.min.js _site/vendor/three/
+          cp /tmp/deps/node_modules/three/examples/js/controls/OrbitControls.js _site/vendor/three/
+          for f in golos-text russo-one jetbrains-mono; do
+            mkdir -p _site/vendor/fonts/$f
+            cp /tmp/deps/node_modules/@fontsource/$f/*.css _site/vendor/fonts/$f/
+            mkdir -p _site/vendor/fonts/$f/files
+            cp /tmp/deps/node_modules/@fontsource/$f/files/*-{latin,cyrillic}-*-normal.woff2 _site/vendor/fonts/$f/files/ 2>/dev/null || true
+            cp /tmp/deps/node_modules/@fontsource/$f/files/*-latin-ext-*-normal.woff2 _site/vendor/fonts/$f/files/ 2>/dev/null || true
+          done
+          for f in golos-text/400 golos-text/500 golos-text/600 golos-text/700 russo-one/400 jetbrains-mono/400 jetbrains-mono/600; do
+            test -f _site/vendor/fonts/$f.css || { echo "Нет файла $f.css"; exit 1; }
+          done
+          ls -R _site/vendor | head -60
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
