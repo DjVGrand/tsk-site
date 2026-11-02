@@ -1,0 +1,586 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<title>ТСК — управление сайтом</title>
+<link rel="stylesheet" href="../vendor/fonts/golos-text/400.css">
+<link rel="stylesheet" href="../vendor/fonts/golos-text/600.css">
+<link rel="stylesheet" href="../vendor/fonts/russo-one/400.css">
+<link rel="stylesheet" href="../vendor/fonts/jetbrains-mono/400.css">
+<style>
+:root{
+  --bg:#E6E8EA; --surface:#F6F7F8; --ink:#1D2227; --muted:#58616A; --line:#C2C8CD; --soft:#DCDFE2;
+  --accent:#3C4650; --accent-ink:#fff; --ok:#2E7D4F; --warn:#9A6B00; --err:#B3261E;
+  --metal:linear-gradient(180deg,#5B6670,#343C44); --r:4px;
+  --f-display:"Russo One","Arial Black",system-ui,sans-serif;
+  --f-body:"Golos Text",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#14171A; --surface:#1D2125; --ink:#E1E5E8; --muted:#97A0A8; --line:#343A40; --soft:#262B30;
+  --accent:#B4BCC3; --accent-ink:#14171A; --ok:#5BC08A; --warn:#E0B44C; --err:#F2766B;
+  --metal:linear-gradient(180deg,#D3D9DE,#9AA3AB); color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#14171A; --surface:#1D2125; --ink:#E1E5E8; --muted:#97A0A8; --line:#343A40; --soft:#262B30;
+  --accent:#B4BCC3; --accent-ink:#14171A; --ok:#5BC08A; --warn:#E0B44C; --err:#F2766B;
+  --metal:linear-gradient(180deg,#D3D9DE,#9AA3AB); color-scheme:dark}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font:15px/1.5 var(--f-body)}
+button,input,select,textarea{font:inherit;color:inherit}
+a{color:inherit}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.wrap{max-width:1180px;margin:0 auto;padding:0 max(16px,env(safe-area-inset-left,0px))}
+h1,h2,h3{margin:0;font-weight:400;font-family:var(--f-display);line-height:1.15}
+h2{font-size:1.4rem}
+h3{font-size:1.05rem;font-family:var(--f-body);font-weight:600}
+.muted{color:var(--muted)}
+.mono{font-family:var(--f-mono);font-size:.8rem}
+.small{font-size:.85rem}
+
+/* шапка */
+.top{position:sticky;top:0;z-index:5;background:var(--surface);border-bottom:1px solid var(--line)}
+.top .wrap{display:flex;align-items:center;gap:12px;padding-block:10px;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:10px;text-decoration:none}
+.brand b{font-family:var(--f-display);font-weight:400;font-size:1.05rem}
+.brand span{font-size:.8rem;color:var(--muted)}
+.top .sp{flex:1}
+.tabs{display:flex;gap:4px;flex-wrap:wrap}
+.tab{border:0;background:none;padding:8px 12px;border-radius:var(--r);cursor:pointer;font-weight:600;color:var(--muted)}
+.tab[aria-selected="true"]{background:var(--metal);color:var(--accent-ink)}
+.tab .cnt{font-family:var(--f-mono);font-size:.75rem;opacity:.75;margin-left:4px}
+
+/* кнопки */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;border:1.5px solid var(--line);background:var(--surface);border-radius:var(--r);padding:8px 14px;cursor:pointer;font-weight:600;text-decoration:none;white-space:nowrap}
+.btn:hover{border-color:var(--ink)}
+.btn:disabled{opacity:.5;cursor:default}
+.btn.pri{background:var(--metal);color:var(--accent-ink);border-color:transparent}
+.btn.danger{color:var(--err)}
+.btn.sm{padding:4px 9px;font-size:.85rem}
+.ibtn{border:1px solid var(--line);background:var(--surface);border-radius:var(--r);width:32px;height:32px;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;font-size:1rem;line-height:1;padding:0}
+.ibtn:hover{border-color:var(--ink)}
+.ibtn.on{background:var(--metal);color:var(--accent-ink);border-color:transparent}
+.ibtn.danger:hover{border-color:var(--err);color:var(--err)}
+
+/* статус публикации */
+.bar{border-bottom:1px solid var(--line);background:var(--soft)}
+.bar .wrap{display:flex;gap:12px;align-items:center;flex-wrap:wrap;padding-block:8px}
+.status{font-size:.9rem;display:flex;align-items:center;gap:8px}
+.dot{width:9px;height:9px;border-radius:50%;background:var(--muted);flex:none}
+.dot.ok{background:var(--ok)} .dot.warn{background:var(--warn)} .dot.err{background:var(--err)}
+.dot.spin{background:var(--warn);animation:pulse 1s infinite alternate}
+@keyframes pulse{to{opacity:.3}}
+
+main{padding-block:24px 80px}
+.head{display:flex;align-items:end;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:16px}
+.head p{margin:4px 0 0;color:var(--muted);max-width:70ch}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:18px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px}
+.tile{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);overflow:hidden;display:flex;flex-direction:column}
+.tile .im{position:relative;aspect-ratio:4/3;background:var(--soft)}
+.tile img{width:100%;height:100%;object-fit:cover;display:block}
+.tile .num{position:absolute;left:6px;top:6px;background:rgba(0,0,0,.6);color:#fff;font-family:var(--f-mono);font-size:.72rem;padding:2px 6px;border-radius:3px}
+.tile .flag{position:absolute;right:6px;top:6px;background:var(--metal);color:var(--accent-ink);font-size:.7rem;font-weight:600;padding:2px 6px;border-radius:3px}
+.tile .new{position:absolute;left:6px;bottom:6px;background:var(--ok);color:#fff;font-size:.7rem;font-weight:600;padding:2px 6px;border-radius:3px}
+.tile .ctl{display:flex;gap:4px;padding:8px;flex-wrap:wrap;align-items:center}
+.tile .ctl .sp{flex:1}
+.tile input{border:0;border-top:1px solid var(--line);background:transparent;padding:8px 10px;width:100%;font-size:.88rem}
+.tile[draggable="true"]{cursor:grab}
+.tile.drag{opacity:.4}
+
+/* формы */
+label.f{display:flex;flex-direction:column;gap:4px;font-size:.85rem;font-weight:600;min-width:0}
+label.f span.h{font-weight:400;color:var(--muted);font-size:.8rem}
+input.t,select.t,textarea.t{background:var(--bg);border:1.5px solid var(--line);border-radius:var(--r);padding:8px 10px;font-weight:400;font-size:.95rem;width:100%;min-width:0}
+textarea.t{resize:vertical;min-height:90px}
+input.t:focus,select.t:focus,textarea.t:focus{border-color:var(--accent);outline:none}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.stack{display:flex;flex-direction:column;gap:14px}
+.sec{border-top:1px solid var(--line);padding-top:14px;display:flex;flex-direction:column;gap:10px}
+.sec-h{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+@media (max-width:640px){.row{grid-template-columns:1fr}}
+
+/* каталог */
+.split{display:grid;grid-template-columns:280px 1fr;gap:16px;align-items:start}
+.split>div{min-width:0}
+@media (max-width:860px){.split{grid-template-columns:1fr}}
+@media (max-width:640px){.top{position:static}.tab{padding:6px 9px}}
+.list{display:flex;flex-direction:column;gap:6px}
+.li{display:flex;align-items:center;gap:8px;padding:8px;border:1.5px solid var(--line);background:var(--surface);border-radius:var(--r);cursor:pointer;text-align:left;width:100%}
+.li.on{border-color:var(--accent);box-shadow:inset 3px 0 0 var(--accent)}
+.li img{width:56px;height:40px;object-fit:cover;border-radius:2px;background:var(--soft);flex:none}
+.li .tx{flex:1;min-width:0}
+.li .tx b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.li .tx small{color:var(--muted)}
+table.v{width:100%;border-collapse:collapse;font-size:.9rem}
+table.v th{text-align:left;font-weight:600;font-size:.78rem;color:var(--muted);padding:4px 6px;border-bottom:1px solid var(--line)}
+table.v td{padding:4px 6px;border-bottom:1px solid var(--line);vertical-align:middle}
+table.v input.t,table.v select.t{padding:6px 8px;font-size:.9rem}
+table.v td.n input{width:80px}
+.tscroll{overflow-x:auto}
+.thumbs{display:flex;gap:8px;flex-wrap:wrap}
+.th{position:relative;width:132px;border:1px solid var(--line);border-radius:var(--r);overflow:hidden;background:var(--surface)}
+.th img{width:100%;aspect-ratio:4/3;object-fit:cover;display:block;background:var(--soft)}
+.th .ctl{display:flex;gap:2px;padding:4px;justify-content:space-between}
+.th .ctl .ibtn{width:28px;height:28px;font-size:.85rem}
+.th input{border:0;border-top:1px solid var(--line);background:transparent;padding:6px 8px;width:100%;font-size:.82rem}
+.note{font-size:.85rem;color:var(--muted);background:var(--soft);border-radius:var(--r);padding:8px 10px}
+
+/* новости */
+.ncard{display:flex;gap:12px;align-items:flex-start}
+.ncard .d{font-family:var(--f-mono);font-size:.78rem;color:var(--muted);white-space:nowrap}
+
+/* окно выбора */
+.modal{position:fixed;inset:0;z-index:20;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;padding:16px}
+.modal .box{background:var(--surface);border-radius:var(--r);width:min(900px,100%);max-height:100%;display:flex;flex-direction:column}
+.modal .bh{display:flex;justify-content:space-between;align-items:center;padding:14px 16px;border-bottom:1px solid var(--line);gap:10px}
+.modal .bb{overflow:auto;padding:14px 16px}
+.modal .bf{display:flex;justify-content:flex-end;gap:8px;padding:12px 16px;border-top:1px solid var(--line)}
+.pick{position:relative;border:2px solid transparent;border-radius:var(--r);overflow:hidden;cursor:pointer;padding:0;background:none}
+.pick img{width:100%;aspect-ratio:4/3;object-fit:cover;display:block}
+.pick[aria-pressed="true"]{border-color:var(--accent)}
+.pick[aria-pressed="true"]::after{content:"✓";position:absolute;right:6px;top:6px;background:var(--metal);color:var(--accent-ink);width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.8rem}
+
+/* вход */
+.login{max-width:560px;margin:48px auto;display:flex;flex-direction:column;gap:16px}
+.login .panel{display:flex;flex-direction:column;gap:14px}
+details{background:var(--soft);border-radius:var(--r);padding:10px 14px}
+details summary{cursor:pointer;font-weight:600}
+details ol{margin:8px 0 0;padding-left:20px}
+details li{margin-bottom:6px}
+.err{color:var(--err);font-size:.9rem}
+.toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:var(--r);z-index:30;max-width:calc(100% - 32px);font-size:.92rem;box-shadow:0 6px 20px rgba(0,0,0,.25)}
+.empty{padding:28px;text-align:center;color:var(--muted);border:1.5px dashed var(--line);border-radius:var(--r)}
+.spinner{display:inline-block;width:14px;height:14px;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;animation:rot .8s linear infinite}
+@keyframes rot{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<input type="file" id="fileIn" accept="image/*" multiple hidden>
+
+<script>
+"use strict";
+/* ===== Настройки ===== */
+const OWNER="DjVGrand", REPO="tsk-site", BRANCH="main", API="https://api.github.com";
+const SITE_URL="https://tsk-st.ru/";
+const MAX_SIDE=1920, JPEG_Q=0.85, HOME_MAX=5;
+const MODELS=[[1,"Как ТСК 1"],[2,"Как ТСК 2"],[3,"Как ТСК комби"],[0,"Без 3D-модели"]];
+const USES=[["train","Тренировки"],["full","Тренировки и соревнования"]];
+
+/* ===== Состояние ===== */
+const S={token:null,user:null,view:"album",sel:null,base:null,baseStr:"",data:null,
+  uploads:new Map(),   // путь в репозитории -> {b64, url} — ещё не опубликованные файлы
+  shown:new Map(),     // путь -> blob-url для показа, пока сайт не обновился
+  busy:false,deploy:null,error:""};
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const clone=o=>JSON.parse(JSON.stringify(o));
+const img=p=>!p?"":S.uploads.has(p)?S.uploads.get(p).url:S.shown.has(p)?S.shown.get(p):/^(data:|https?:|blob:)/.test(p)?p:"../"+p;
+function toast(t,ms=3500){const d=document.createElement("div");d.className="toast";d.textContent=t;document.body.appendChild(d);setTimeout(()=>d.remove(),ms);}
+const store={get:k=>{try{return localStorage.getItem(k)}catch(e){return null}},set:(k,v)=>{try{localStorage.setItem(k,v)}catch(e){}},del:k=>{try{localStorage.removeItem(k)}catch(e){}}};
+const sstore={get:k=>{try{return sessionStorage.getItem(k)}catch(e){return null}},set:(k,v)=>{try{sessionStorage.setItem(k,v)}catch(e){}},del:k=>{try{sessionStorage.removeItem(k)}catch(e){}}};
+
+/* ===== GitHub API ===== */
+async function gh(path,opt={}){
+  const r=await fetch(API+path,{...opt,headers:{"Accept":"application/vnd.github+json","Authorization":"Bearer "+S.token,"X-GitHub-Api-Version":"2022-11-28",...(opt.body?{"Content-Type":"application/json"}:{})}});
+  if(!r.ok){let m=""; try{m=(await r.json()).message}catch(e){} const err=new Error(m||("HTTP "+r.status)); err.status=r.status; throw err;}
+  return r.status===204?null:r.json();
+}
+const R=`/repos/${OWNER}/${REPO}`;
+function b64ToUtf8(b){const bin=atob(b.replace(/\s/g,"")); const u=new Uint8Array(bin.length); for(let i=0;i<bin.length;i++)u[i]=bin.charCodeAt(i); return new TextDecoder().decode(u);}
+
+async function loadRemote(){
+  const ref=await gh(`${R}/git/ref/heads/${BRANCH}`);
+  const sha=ref.object.sha;
+  const commit=await gh(`${R}/git/commits/${sha}`);
+  const file=await gh(`${R}/contents/content/site.json?ref=${sha}`);
+  const str=b64ToUtf8(file.content);
+  return {sha,tree:commit.tree.sha,str,data:JSON.parse(str)};
+}
+async function login(token,remember){
+  S.token=token;
+  const u=await gh("/user");
+  const repo=await gh(R);
+  if(!repo.permissions||!repo.permissions.push) throw new Error(`У пользователя ${u.login} нет права изменять сайт. Попросите владельца добавить вас в соавторы репозитория.`);
+  S.user=u.login;
+  (remember?store:sstore).set("tsk-admin-token",token);
+  await reload();
+}
+async function reload(){
+  const b=await loadRemote();
+  S.base=b; S.baseStr=JSON.stringify(b.data); S.data=clone(b.data);
+  S.data.album=S.data.album||[]; S.data.home=S.data.home||[]; S.data.products=S.data.products||[]; S.data.news=S.data.news||[];
+  S.uploads.clear();
+  if(S.view==="catalog"&&!S.data.products.find(p=>p.id===S.sel)) S.sel=S.data.products[0]?.id||null;
+  if(S.view==="news"&&!S.data.news.find(p=>p.id===S.sel)) S.sel=null;
+  render();
+}
+function logout(){store.del("tsk-admin-token");sstore.del("tsk-admin-token");S.token=null;S.user=null;S.data=null;render();}
+
+/* ===== Изменения ===== */
+const dirty=()=>S.data&&JSON.stringify(S.data)!==S.baseStr;
+function changedParts(){
+  if(!S.data) return [];
+  const b=JSON.parse(S.baseStr), d=S.data, out=[], eq=(x,y)=>JSON.stringify(x)===JSON.stringify(y);
+  if(!eq(b.album,d.album)) out.push("фотоальбом");
+  if(!eq(b.home,d.home)) out.push("фото на главной");
+  if(!eq(b.products,d.products)) out.push("каталог");
+  if(!eq(b.news||[],d.news)) out.push("новости");
+  return out;
+}
+function refs(data){const s=new Set(); (function w(o){ if(Array.isArray(o)) o.forEach(w); else if(o&&typeof o==="object") Object.values(o).forEach(w); else if(typeof o==="string"&&/^(photos|images)\//.test(o)) s.add(o);})(data); return s;}
+function touch(){ if(S.data){ const c={album:S.data.album.length,home:S.data.home.length,catalog:S.data.products.length,news:S.data.news.length}; document.querySelectorAll(".tab[data-v]").forEach(t=>{const n=t.querySelector(".cnt"); if(n) n.textContent=c[t.dataset.v];}); }
+  const pb=$("#pubBtn"); if(pb){const parts=changedParts(); pb.disabled=!parts.length||S.busy; pb.textContent=parts.length?`Опубликовать (${parts.join(", ")})`:"Изменений нет"; const rb=$("#revBtn"); if(rb) rb.hidden=!parts.length;} }
+
+/* ===== Фото: сжатие и загрузка ===== */
+function pickFiles(multi=true){
+  return new Promise(res=>{const f=$("#fileIn"); f.multiple=multi; f.value=""; f.onchange=()=>res([...f.files]); f.click();});
+}
+async function prepImage(file,folder){
+  let bmp;
+  try{ bmp=await createImageBitmap(file,{imageOrientation:"from-image"}); }
+  catch(e){ bmp=await new Promise((ok,no)=>{const i=new Image(); i.onload=()=>ok(i); i.onerror=()=>no(new Error("Не удалось открыть файл "+file.name)); i.src=URL.createObjectURL(file);}); }
+  const w=bmp.width,h=bmp.height,k=Math.min(1,MAX_SIDE/Math.max(w,h));
+  const c=document.createElement("canvas"); c.width=Math.round(w*k); c.height=Math.round(h*k);
+  const g=c.getContext("2d"); g.fillStyle="#fff"; g.fillRect(0,0,c.width,c.height); g.drawImage(bmp,0,0,c.width,c.height);
+  const blob=await new Promise(r=>c.toBlob(r,"image/jpeg",JPEG_Q));
+  const b64=await new Promise(r=>{const fr=new FileReader(); fr.onload=()=>r(String(fr.result).split(",")[1]); fr.readAsDataURL(blob);});
+  const d=new Date(), p2=n=>String(n).padStart(2,"0");
+  const name=`${folder}/${d.getFullYear()}${p2(d.getMonth()+1)}${p2(d.getDate())}-${p2(d.getHours())}${p2(d.getMinutes())}${p2(d.getSeconds())}-${Math.random().toString(36).slice(2,7)}.jpg`;
+  S.uploads.set(name,{b64,url:URL.createObjectURL(blob)});
+  return name;
+}
+async function uploadMany(folder,multi=true){
+  const files=await pickFiles(multi); if(!files.length) return [];
+  const out=[]; toast(`Обрабатываю ${files.length} фото…`,1500);
+  for(const f of files){ try{ out.push(await prepImage(f,folder)); }catch(e){ toast(e.message||String(e)); } }
+  return out;
+}
+
+/* ===== Публикация ===== */
+async function publish(force=false){
+  if(S.busy) return;
+  const problems=validate(); if(problems.length){ alert("Исправьте перед публикацией:\n\n• "+problems.join("\n• ")); return; }
+  S.busy=true; S.error=""; renderBar("Публикую изменения…","spin");
+  try{
+    const ref=await gh(`${R}/git/ref/heads/${BRANCH}`); const head=ref.object.sha;
+    let baseTree=S.base.tree;
+    if(head!==S.base.sha){
+      const remote=await loadRemote();
+      if(remote.str!==S.base.str && JSON.stringify(remote.data)!==S.baseStr && !force){
+        S.busy=false; renderBar("Пока вы работали, сайт изменил другой сотрудник.","err");
+        if(confirm("Пока вы работали, содержимое сайта изменил другой сотрудник.\n\nОК — опубликовать вашу версию поверх (его изменения в этих разделах пропадут).\nОтмена — ничего не публиковать; потом нажмите «Обновить», чтобы загрузить свежую версию (ваши неопубликованные изменения пропадут).")) return publish(true);
+        return;
+      }
+      baseTree=remote.tree;
+    }
+    const now=refs(S.data), was=refs(JSON.parse(S.baseStr));
+    const entries=[{path:"content/site.json",mode:"100644",type:"blob",content:JSON.stringify(S.data,null,1)+"\n"}];
+    for(const p of now){ const u=S.uploads.get(p); if(u){ const b=await gh(`${R}/git/blobs`,{method:"POST",body:JSON.stringify({content:u.b64,encoding:"base64"})}); entries.push({path:p,mode:"100644",type:"blob",sha:b.sha}); } }
+    const gone=[...was].filter(p=>!now.has(p));
+    if(gone.length){ const t=await gh(`${R}/git/trees/${baseTree}?recursive=1`); const ex=new Set(t.tree.map(x=>x.path)); gone.filter(p=>ex.has(p)).forEach(p=>entries.push({path:p,mode:"100644",type:"blob",sha:null})); }
+    const tree=await gh(`${R}/git/trees`,{method:"POST",body:JSON.stringify({base_tree:baseTree,tree:entries})});
+    const msg=`Панель управления: ${changedParts().join(", ")||"изменения"} (${S.user})`;
+    const commit=await gh(`${R}/git/commits`,{method:"POST",body:JSON.stringify({message:msg,tree:tree.sha,parents:[head]})});
+    await gh(`${R}/git/refs/heads/${BRANCH}`,{method:"PATCH",body:JSON.stringify({sha:commit.sha,force:false})});
+    for(const [p,u] of S.uploads) if(now.has(p)) S.shown.set(p,u.url);
+    S.uploads.clear();
+    S.base={sha:commit.sha,tree:tree.sha,str:JSON.stringify(S.data,null,1)+"\n",data:clone(S.data)}; S.baseStr=JSON.stringify(S.data);
+    S.busy=false; S.deploy={sha:commit.sha,started:Date.now(),state:"wait"};
+    render(); watchDeploy();
+  }catch(e){
+    S.busy=false; S.error=e.message||String(e); renderBar("Не удалось опубликовать: "+S.error,"err"); touch();
+  }
+}
+async function watchDeploy(){
+  const d=S.deploy; if(!d) return;
+  try{
+    const r=await gh(`${R}/actions/runs?head_sha=${d.sha}&per_page=1`);
+    const run=r.workflow_runs&&r.workflow_runs[0];
+    if(run){ d.url=run.html_url; if(run.status==="completed"){ d.state=run.conclusion==="success"?"ok":"fail"; renderBar(); if(d.state==="ok") toast("Изменения опубликованы на сайте"); return; } }
+  }catch(e){ d.state="unknown"; renderBar(); return; }
+  if(Date.now()-d.started>8*60e3){ d.state="unknown"; renderBar(); return; }
+  renderBar(); setTimeout(()=>{ if(S.deploy===d) watchDeploy(); },6000);
+}
+function validate(){
+  const out=[], d=S.data;
+  d.products.forEach((p,i)=>{
+    const nm=p.name||`конструкция №${i+1}`;
+    if(!String(p.name||"").trim()) out.push(`Каталог: у конструкции №${i+1} нет названия`);
+    if(!p.variants||!p.variants.length) out.push(`Каталог: у «${nm}» нет ни одного варианта`);
+    (p.variants||[]).forEach((v,j)=>{ if(!String(v.name||"").trim()) out.push(`Каталог: у «${nm}» вариант №${j+1} без названия`);
+      ["L","W","n"].forEach(k=>{ if(!(+v[k]>0)) out.push(`Каталог: у «${nm}», вариант «${v.name||j+1}» — не указано: ${{L:"длина",W:"ширина",n:"число ниток"}[k]}`); }); });
+  });
+  d.news.forEach((n,i)=>{ if(!String(n.title||"").trim()) out.push(`Новости: у новости №${i+1} нет заголовка`); if(!/^\d{4}-\d{2}-\d{2}$/.test(n.date||"")) out.push(`Новости: у «${n.title||"новости №"+(i+1)}» не указана дата`); });
+  return out;
+}
+
+/* ===== Отрисовка ===== */
+function render(){
+  const app=$("#app");
+  if(!S.token||!S.data){ app.innerHTML=loginHTML(); return; }
+  const c={album:S.data.album.length,home:S.data.home.length,catalog:S.data.products.length,news:S.data.news.length};
+  const T=[["album","Фотоальбом"],["home","Главная"],["catalog","Каталог"],["news","Новости"]];
+  app.innerHTML=`<header class="top"><div class="wrap">
+      <a class="brand" href="${SITE_URL}" target="_blank" rel="noopener"><b>ТСК</b><span>управление сайтом</span></a>
+      <nav class="tabs" role="tablist">${T.map(([k,t])=>`<button class="tab" role="tab" data-act="view" data-v="${k}" aria-selected="${S.view===k}">${t}<span class="cnt">${c[k]}</span></button>`).join("")}</nav>
+      <span class="sp"></span>
+      <span class="small muted">${esc(S.user)}</span>
+      <button class="btn sm" data-act="logout">Выйти</button>
+    </div></header>
+    <div class="bar"><div class="wrap">
+      <button class="btn pri" id="pubBtn" data-act="publish"></button>
+      <button class="btn sm" id="revBtn" data-act="revert" hidden>Отменить изменения</button>
+      <button class="btn sm" data-act="reload" title="Загрузить свежую версию с сайта">Обновить</button>
+      <span class="status" id="status"></span>
+    </div></div>
+    <main><div class="wrap" id="view">${viewHTML()}</div></main>`;
+  touch(); renderBar(); bindDrag();
+}
+function renderBar(text,cls){
+  const el=$("#status"); if(!el) return;
+  if(text){ el.innerHTML=`<span class="dot ${cls||""}"></span>${esc(text)}`; return; }
+  const d=S.deploy;
+  if(S.error){ el.innerHTML=`<span class="dot err"></span>${esc("Ошибка: "+S.error)}`; return; }
+  if(!d){ el.innerHTML=`<span class="dot ok"></span>Загружена текущая версия сайта`; return; }
+  const link=d.url?` <a href="${d.url}" target="_blank" rel="noopener">подробнее</a>`:"";
+  if(d.state==="wait") el.innerHTML=`<span class="dot spin"></span>Сохранено. Сайт обновляется, обычно 1–2 минуты…${link}`;
+  else if(d.state==="ok") el.innerHTML=`<span class="dot ok"></span>Изменения на сайте. <a href="${SITE_URL}" target="_blank" rel="noopener">Открыть сайт</a>`;
+  else if(d.state==="fail") el.innerHTML=`<span class="dot err"></span>Сохранено, но сборка сайта не прошла — сайт остался прежним.${link}`;
+  else el.innerHTML=`<span class="dot ok"></span>Сохранено. Сайт обновится в течение пары минут.`;
+}
+function loginHTML(){
+  return `<div class="wrap"><div class="login">
+    <div><h1 style="font-size:1.6rem">ТСК · управление сайтом</h1><p class="muted" style="margin:6px 0 0">Фотоальбом, каталог и новости сайта tsk-st.ru.</p></div>
+    <form class="panel" id="loginForm">
+      <label class="f">Ключ доступа GitHub<input class="t" id="tokIn" type="password" autocomplete="off" placeholder="github_pat_… или ghp_…" required></label>
+      <label style="display:flex;gap:8px;align-items:center;font-size:.9rem"><input type="checkbox" id="remIn" checked> Запомнить на этом устройстве</label>
+      <div class="err" id="loginErr">${esc(S.error)}</div>
+      <button class="btn pri" type="submit" id="loginBtn">Войти</button>
+    </form>
+    <details><summary>Где взять ключ доступа</summary>
+      <ol>
+        <li><b>Владелец сайта</b> (аккаунт ${OWNER}): откройте <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">создание ключа</a>. В «Repository access» выберите «Only select repositories» → <b>${REPO}</b>. В «Permissions» поставьте <b>Contents: Read and write</b> и <b>Actions: Read-only</b>. Нажмите «Generate token» и скопируйте ключ.</li>
+        <li><b>Сотрудник</b>: сначала владелец добавляет его в репозиторий — <a href="https://github.com/${OWNER}/${REPO}/settings/access" target="_blank" rel="noopener">Settings → Collaborators → Add people</a>, сотрудник принимает приглашение из письма. Затем сотрудник открывает <a href="https://github.com/settings/tokens/new?scopes=public_repo&description=TSK%20site" target="_blank" rel="noopener">создание ключа (classic)</a>, отмечает только <b>public_repo</b>, задаёт срок действия и нажимает «Generate token».</li>
+        <li>Ключ показывается один раз — сохраните его в надёжном месте. Не пересылайте его по почте и в мессенджерах. Если ключ потерян или попал к посторонним, удалите его в настройках GitHub и создайте новый.</li>
+      </ol>
+    </details>
+    <p class="small muted">Ключ хранится только в этом браузере и отправляется только в GitHub.</p>
+  </div></div>`;
+}
+function viewHTML(){
+  if(S.view==="album") return albumHTML();
+  if(S.view==="home") return homeHTML();
+  if(S.view==="catalog") return catalogHTML();
+  return newsHTML();
+}
+const usedIn=p=>{const out=[]; if(S.data.home.includes(p)) out.push("главная"); S.data.products.forEach(x=>{ if((x.photos||[]).includes(p)||(x.schemes||[]).some(s=>s.src===p)) out.push(x.name); }); S.data.news.forEach(n=>{ if((n.photos||[]).includes(p)) out.push("новость «"+n.title+"»"); }); return out;};
+
+function albumHTML(){
+  const A=S.data.album;
+  return `<div class="head"><div><h2>Фотоальбом</h2><p>Порядок здесь — порядок на сайте; первое фото показывается крупно. Перетаскивайте фото мышью или двигайте стрелками. Звёздочка — фото на главной (до ${HOME_MAX}).</p></div>
+    <button class="btn pri" data-act="albumAdd">+ Добавить фото</button></div>
+    ${A.length?`<div class="grid" data-drag="album">${A.map((a,i)=>`<div class="tile" draggable="true" data-i="${i}">
+      <div class="im"><img src="${esc(img(a.src))}" alt="" loading="lazy"><span class="num">${i+1}</span>${S.data.home.includes(a.src)?`<span class="flag">на главной</span>`:""}${S.uploads.has(a.src)?`<span class="new">новое</span>`:""}</div>
+      <input data-bind="album.${i}.caption" value="${esc(a.caption)}" placeholder="Подпись (необязательно)" aria-label="Подпись к фото ${i+1}">
+      <div class="ctl"><button class="ibtn" data-act="mv" data-list="album" data-i="${i}" data-d="-1" title="Раньше" aria-label="Переместить раньше">←</button><button class="ibtn" data-act="mv" data-list="album" data-i="${i}" data-d="1" title="Позже" aria-label="Переместить позже">→</button>
+        <button class="ibtn ${S.data.home.includes(a.src)?"on":""}" data-act="homeToggle" data-src="${esc(a.src)}" title="Показывать на главной" aria-label="Показывать на главной">★</button>
+        <span class="sp"></span><button class="ibtn danger" data-act="albumDel" data-i="${i}" title="Удалить" aria-label="Удалить фото">✕</button></div></div>`).join("")}</div>`
+      :`<div class="empty">В альбоме пока нет фото.</div>`}`;
+}
+function homeHTML(){
+  const H=S.data.home;
+  return `<div class="head"><div><h2>Фото на главной</h2><p>Блок «Комплексы в работе» на главной странице. Первое фото — крупное, всего до ${HOME_MAX} фото. Фото берутся из альбома.</p></div>
+    <button class="btn pri" data-act="homePick" ${H.length>=HOME_MAX?"disabled":""}>+ Выбрать из альбома</button></div>
+    ${H.length?`<div class="grid" data-drag="home">${H.map((p,i)=>`<div class="tile" draggable="true" data-i="${i}"><div class="im"><img src="${esc(img(p))}" alt=""><span class="num">${i+1}${i===0?" · крупно":""}</span></div>
+      <div class="ctl"><button class="ibtn" data-act="mv" data-list="home" data-i="${i}" data-d="-1" aria-label="Раньше">←</button><button class="ibtn" data-act="mv" data-list="home" data-i="${i}" data-d="1" aria-label="Позже">→</button><span class="sp"></span><button class="ibtn danger" data-act="homeDel" data-i="${i}" aria-label="Убрать с главной">✕</button></div></div>`).join("")}</div>`
+      :`<div class="empty">Фото на главной не выбраны — блок будет пустым.</div>`}`;
+}
+function catalogHTML(){
+  const P=S.data.products; let p=P.find(x=>x.id===S.sel); if(!p&&P.length){p=P[0];S.sel=p.id;}
+  return `<div class="head"><div><h2>Каталог</h2><p>Конструкции в порядке показа на сайте. Первая схема — картинка на карточке каталога.</p></div>
+    <button class="btn pri" data-act="prodAdd">+ Добавить конструкцию</button></div>
+    <div class="split"><div class="list">${P.map((x,i)=>`<div class="li ${x.id===S.sel?"on":""}" data-act="sel" data-id="${esc(x.id)}" role="button" tabindex="0">
+        ${(x.schemes&&x.schemes[0])||(x.photos&&x.photos[0])?`<img src="${esc(img((x.schemes&&x.schemes[0]&&x.schemes[0].src)||x.photos[0]))}" alt="">`:`<img alt="">`}
+        <span class="tx"><b>${esc(x.name||"Без названия")}</b><small>${(x.variants||[]).length} вар. · ${x.model?"3D":"без 3D"}</small></span>
+        <button class="ibtn" data-act="mv" data-list="products" data-i="${i}" data-d="-1" aria-label="Выше">↑</button><button class="ibtn" data-act="mv" data-list="products" data-i="${i}" data-d="1" aria-label="Ниже">↓</button></div>`).join("")||`<div class="empty">Нет конструкций</div>`}</div>
+      <div>${p?productHTML(p,P.indexOf(p)):""}</div></div>`;
+}
+function productHTML(p,pi){
+  const b=`products.${pi}`;
+  return `<div class="panel stack">
+    <div class="row"><label class="f">Название<input class="t" data-bind="${b}.name" value="${esc(p.name)}"></label>
+      <label class="f">Подпись над названием<input class="t" data-bind="${b}.code" value="${esc(p.code)}"></label></div>
+    <label class="f">Описание<textarea class="t" data-bind="${b}.desc" rows="4">${esc(p.desc)}</textarea></label>
+    <label class="f">Этапы, доступные к постановке <span class="h">по одному на строку</span><textarea class="t" data-bind="${b}.stages" data-lines rows="6">${esc((p.stages||[]).join("\n"))}</textarea></label>
+    <div class="row"><label class="f">3D-модель<select class="t" data-bind="${b}.model" data-num>${MODELS.map(([v,t])=>`<option value="${v}" ${(+p.model||0)===v?"selected":""}>${t}</option>`).join("")}</select>
+      <span class="h">3D строится по длине, ширине и числу ниток варианта.</span></label></div>
+    <div class="sec"><div class="sec-h"><h3>Варианты</h3><button class="btn sm" data-act="varAdd">+ Вариант</button></div>
+      <div class="tscroll"><table class="v"><thead><tr><th title="Открывается первым">Осн.</th><th>Название</th><th>Длина, м</th><th>Ширина, м</th><th>Ниток</th><th>Назначение</th><th></th></tr></thead><tbody>
+      ${(p.variants||[]).map((v,i)=>`<tr><td><input type="radio" name="defv" data-act="defv" data-i="${i}" ${(+p.defaultVariant||0)===i?"checked":""} aria-label="Вариант по умолчанию"></td>
+        <td><input class="t" data-bind="${b}.variants.${i}.name" value="${esc(v.name)}"></td>
+        <td class="n"><input class="t" data-bind="${b}.variants.${i}.L" data-num inputmode="decimal" value="${esc(v.L)}"></td>
+        <td class="n"><input class="t" data-bind="${b}.variants.${i}.W" data-num inputmode="decimal" value="${esc(v.W)}"></td>
+        <td class="n"><input class="t" data-bind="${b}.variants.${i}.n" data-num inputmode="numeric" value="${esc(v.n)}"></td>
+        <td><select class="t" data-bind="${b}.variants.${i}.use">${USES.map(([k,t])=>`<option value="${k}" ${v.use===k?"selected":""}>${t}</option>`).join("")}</select></td>
+        <td style="white-space:nowrap"><button class="ibtn" data-act="mv" data-list="${b}.variants" data-i="${i}" data-d="-1" aria-label="Выше">↑</button><button class="ibtn danger" data-act="varDel" data-i="${i}" aria-label="Удалить вариант">✕</button></td></tr>
+        ${v.spec?`<tr><td></td><td colspan="6" class="small muted">3D этого варианта построена по чертежу — при изменении размеров модель не поменяется.</td></tr>`:""}`).join("")}
+      </tbody></table></div></div>
+    <div class="sec"><div class="sec-h"><h3>Схемы</h3><button class="btn sm" data-act="schemeAdd">+ Загрузить схему</button></div>
+      ${(p.schemes||[]).length?`<div class="thumbs">${p.schemes.map((s,i)=>`<div class="th"><img src="${esc(img(s.src))}" alt=""><input data-bind="${b}.schemes.${i}.title" value="${esc(s.title)}" placeholder="Название вкладки">
+        <div class="ctl"><button class="ibtn" data-act="mv" data-list="${b}.schemes" data-i="${i}" data-d="-1" aria-label="Раньше">←</button><button class="ibtn" data-act="mv" data-list="${b}.schemes" data-i="${i}" data-d="1" aria-label="Позже">→</button><button class="ibtn" data-act="schemeRep" data-i="${i}" title="Заменить картинку" aria-label="Заменить картинку">⟳</button><button class="ibtn danger" data-act="schemeDel" data-i="${i}" aria-label="Удалить схему">✕</button></div></div>`).join("")}</div>`:`<div class="note">Схем нет. Без схемы на карточке каталога будет первое фото.</div>`}</div>
+    <div class="sec"><div class="sec-h"><h3>Фото</h3><span><button class="btn sm" data-act="pPhotoPick">+ Из альбома</button> <button class="btn sm" data-act="pPhotoUp">+ Загрузить</button></span></div>
+      ${(p.photos||[]).length?`<div class="thumbs">${p.photos.map((s,i)=>`<div class="th"><img src="${esc(img(s))}" alt="">
+        <div class="ctl"><button class="ibtn" data-act="mv" data-list="${b}.photos" data-i="${i}" data-d="-1" aria-label="Раньше">←</button><button class="ibtn" data-act="mv" data-list="${b}.photos" data-i="${i}" data-d="1" aria-label="Позже">→</button><button class="ibtn danger" data-act="pPhotoDel" data-i="${i}" aria-label="Убрать фото">✕</button></div></div>`).join("")}</div>`:`<div class="note">Фото нет — вкладка «Фото» в карточке не появится.</div>`}</div>
+    <div class="sec"><div><button class="btn danger" data-act="prodDel">Удалить конструкцию</button></div></div>
+  </div>`;
+}
+function newsHTML(){
+  const N=S.data.news; const order=N.map((n,i)=>[n,i]).sort((a,b)=>(b[0].date||"").localeCompare(a[0].date||""));
+  const cur=N.findIndex(n=>n.id===S.sel);
+  return `<div class="head"><div><h2>Новости</h2><p>Новости показываются от новых к старым. Три последние также появляются на главной.</p></div>
+    <button class="btn pri" data-act="newsAdd">+ Добавить новость</button></div>
+    <div class="split"><div class="list">${order.map(([n,i])=>`<div class="li ${n.id===S.sel?"on":""}" data-act="sel" data-id="${esc(n.id)}" role="button" tabindex="0">
+      ${n.photos&&n.photos[0]?`<img src="${esc(img(n.photos[0]))}" alt="">`:""}<span class="tx"><b>${esc(n.title||"Без заголовка")}</b><small>${esc(fmtDate(n.date))}</small></span></div>`).join("")||`<div class="empty">Новостей пока нет</div>`}</div>
+    <div>${cur>=0?newsEditHTML(N[cur],cur):N.length?`<div class="empty">Выберите новость слева</div>`:""}</div></div>`;
+}
+function newsEditHTML(n,i){
+  const b=`news.${i}`;
+  return `<div class="panel stack">
+    <div class="row"><label class="f">Дата<input class="t" type="date" data-bind="${b}.date" value="${esc(n.date)}"></label><span></span></div>
+    <label class="f">Заголовок<input class="t" data-bind="${b}.title" value="${esc(n.title)}"></label>
+    <label class="f">Текст <span class="h">пустая строка — новый абзац</span><textarea class="t" data-bind="${b}.text" rows="8">${esc(n.text)}</textarea></label>
+    <div class="sec"><div class="sec-h"><h3>Фото</h3><span><button class="btn sm" data-act="nPhotoPick">+ Из альбома</button> <button class="btn sm" data-act="nPhotoUp">+ Загрузить</button></span></div>
+      ${(n.photos||[]).length?`<div class="thumbs">${n.photos.map((s,j)=>`<div class="th"><img src="${esc(img(s))}" alt="">
+        <div class="ctl"><button class="ibtn" data-act="mv" data-list="${b}.photos" data-i="${j}" data-d="-1" aria-label="Раньше">←</button><button class="ibtn" data-act="mv" data-list="${b}.photos" data-i="${j}" data-d="1" aria-label="Позже">→</button><button class="ibtn danger" data-act="nPhotoDel" data-i="${j}" aria-label="Убрать фото">✕</button></div></div>`).join("")}</div>`:`<div class="note">Без фото.</div>`}
+      <label style="display:flex;gap:8px;align-items:center;font-size:.9rem"><input type="checkbox" data-act="nToAlbum" ${n.toAlbum?"checked":""}> Новые загруженные фото этой новости добавлять и в фотоальбом</label></div>
+    <div class="sec"><div><button class="btn danger" data-act="newsDel">Удалить новость</button></div></div>
+  </div>`;
+}
+const MONTHS=["января","февраля","марта","апреля","мая","июня","июля","августа","сентября","октября","ноября","декабря"];
+const fmtDate=d=>{const m=/^(\d{4})-(\d{2})-(\d{2})/.exec(d||""); return m?`${+m[3]} ${MONTHS[+m[2]-1]} ${m[1]}`:"дата не указана";};
+
+/* ===== Окно выбора из альбома ===== */
+function pickFromAlbum(title,max,exclude=[]){
+  return new Promise(res=>{
+    const A=S.data.album.filter(a=>!exclude.includes(a.src)); const chosen=[];
+    const m=document.createElement("div"); m.className="modal";
+    m.innerHTML=`<div class="box" role="dialog" aria-modal="true" aria-label="${esc(title)}"><div class="bh"><h3>${esc(title)}</h3><button class="ibtn" data-x aria-label="Закрыть">✕</button></div>
+      <div class="bb">${A.length?`<div class="grid" style="grid-template-columns:repeat(auto-fill,minmax(140px,1fr))">${A.map(a=>`<button class="pick" type="button" data-src="${esc(a.src)}" aria-pressed="false"><img src="${esc(img(a.src))}" alt="${esc(a.caption)}" loading="lazy"></button>`).join("")}</div>`:`<div class="empty">Все фото альбома уже выбраны.</div>`}</div>
+      <div class="bf"><span class="small muted" style="margin-right:auto" data-c>Выбрано: 0${max?` из ${max}`:""}</span><button class="btn" data-x>Отмена</button><button class="btn pri" data-ok>Добавить</button></div></div>`;
+    document.body.appendChild(m);
+    const close=v=>{m.remove();res(v);};
+    m.addEventListener("click",e=>{
+      if(e.target===m||e.target.closest("[data-x]")) return close([]);
+      if(e.target.closest("[data-ok]")) return close(chosen);
+      const b=e.target.closest(".pick"); if(!b) return;
+      const s=b.dataset.src, k=chosen.indexOf(s);
+      if(k>=0){chosen.splice(k,1);b.setAttribute("aria-pressed","false");}
+      else{ if(max&&chosen.length>=max){toast(`Можно выбрать не больше ${max}`);return;} chosen.push(s);b.setAttribute("aria-pressed","true");}
+      m.querySelector("[data-c]").textContent=`Выбрано: ${chosen.length}${max?` из ${max}`:""}`;
+    });
+  });
+}
+
+/* ===== Действия ===== */
+function getPath(path){return path.split(".").reduce((o,k)=>o[k],S.data);}
+function setPath(path,val){const ks=path.split("."); const last=ks.pop(); const o=ks.reduce((o,k)=>o[k],S.data); o[last]=val;}
+const curProd=()=>S.data.products.find(x=>x.id===S.sel);
+const curNews=()=>S.data.news.find(x=>x.id===S.sel);
+function slug(s){const m={а:"a",б:"b",в:"v",г:"g",д:"d",е:"e",ё:"e",ж:"zh",з:"z",и:"i",й:"y",к:"k",л:"l",м:"m",н:"n",о:"o",п:"p",р:"r",с:"s",т:"t",у:"u",ф:"f",х:"h",ц:"c",ч:"ch",ш:"sh",щ:"sch",ъ:"",ы:"y",ь:"",э:"e",ю:"yu",я:"ya"};
+  return String(s).toLowerCase().split("").map(c=>m[c]??c).join("").replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"")||"item";}
+function uniqId(base,list){let id=base,k=2; while(list.some(x=>x.id===id)) id=base+"-"+(k++); return id;}
+function rerender(){const y=window.scrollY; $("#view").innerHTML=viewHTML(); bindDrag(); touch(); window.scrollTo(0,y);}
+function removeEverywhere(src){
+  S.data.home=S.data.home.filter(x=>x!==src);
+  S.data.products.forEach(p=>{p.photos=(p.photos||[]).filter(x=>x!==src);});
+  S.data.news.forEach(n=>{n.photos=(n.photos||[]).filter(x=>x!==src);});
+}
+
+document.addEventListener("submit",async e=>{
+  if(e.target.id!=="loginForm") return; e.preventDefault();
+  const t=$("#tokIn").value.trim(), btn=$("#loginBtn"); if(!t) return;
+  btn.disabled=true; btn.innerHTML=`<span class="spinner"></span> Вхожу…`; S.error="";
+  try{ await login(t,$("#remIn").checked); }
+  catch(err){ S.token=null; S.error=err.status===401?"Ключ не подошёл: проверьте, что он скопирован полностью и не истёк.":err.status===404?"Нет доступа к репозиторию сайта. Проверьте права ключа (репозиторий tsk-site).":err.message; render(); }
+});
+document.addEventListener("input",e=>{
+  const el=e.target.closest("[data-bind]"); if(!el||!S.data) return;
+  let v=el.value; if(el.hasAttribute("data-lines")) v=v.split("\n").map(s=>s.trim()).filter(Boolean);
+  else if(el.hasAttribute("data-num")) v=v===""?"":(isNaN(+String(v).replace(",","."))?v:+String(v).replace(",","."));
+  setPath(el.dataset.bind,v); touch();
+  if(/^(products\.\d+\.name|news\.\d+\.(title|date))$/.test(el.dataset.bind)){ const li=document.querySelector(".li.on .tx"); if(li){ const p=getPath(el.dataset.bind.split(".").slice(0,2).join(".")); li.innerHTML=S.view==="news"?`<b>${esc(p.title||"Без заголовка")}</b><small>${esc(fmtDate(p.date))}</small>`:`<b>${esc(p.name||"Без названия")}</b><small>${(p.variants||[]).length} вар. · ${p.model?"3D":"без 3D"}</small>`; } }
+});
+document.addEventListener("change",e=>{ const el=e.target.closest("select[data-bind]"); if(el&&el.dataset.bind.endsWith(".model")) rerender(); });
+document.addEventListener("keydown",e=>{ if((e.key==="Enter"||e.key===" ")&&e.target.matches(".li[data-act]")){e.preventDefault();e.target.click();} });
+document.addEventListener("click",async e=>{
+  const el=e.target.closest("[data-act]"); if(!el||!S.data&&el.dataset.act!=="logout") return;
+  const a=el.dataset.act, i=+el.dataset.i;
+  if(a!=="defv"&&a!=="nToAlbum") e.preventDefault();
+  if(a==="view"){ S.view=el.dataset.v; S.sel=S.view==="catalog"?(S.data.products[0]?.id||null):S.view==="news"?(S.data.news.slice().sort((x,y)=>(y.date||"").localeCompare(x.date||""))[0]?.id||null):null; render(); return; }
+  if(a==="logout"){ if(dirty()&&!confirm("Есть неопубликованные изменения. Выйти и потерять их?")) return; logout(); return; }
+  if(a==="publish") return publish();
+  if(a==="revert"){ if(confirm("Отменить все неопубликованные изменения?")){ S.data=clone(JSON.parse(S.baseStr)); S.uploads.clear(); render(); } return; }
+  if(a==="reload"){ if(dirty()&&!confirm("Загрузить свежую версию? Неопубликованные изменения пропадут.")) return; try{ renderBar("Загружаю…","spin"); S.error=""; await reload(); }catch(err){ S.error=err.message; renderBar(); } return; }
+  if(a==="sel"){ if(e.target.closest("[data-act='mv']")) return; S.sel=el.dataset.id; rerender(); return; }
+  if(a==="mv"){ const list=getPath(el.dataset.list), j=i+(+el.dataset.d); if(j<0||j>=list.length) return; [list[i],list[j]]=[list[j],list[i]];
+    if(/variants$/.test(el.dataset.list)){ const p=curProd(); const dv=+p.defaultVariant||0; if(dv===i)p.defaultVariant=j; else if(dv===j)p.defaultVariant=i; }
+    rerender(); return; }
+  // альбом
+  if(a==="albumAdd"){ const ps=await uploadMany("photos"); ps.forEach(p=>S.data.album.push({src:p,caption:""})); if(ps.length){rerender(); toast(`Добавлено фото: ${ps.length}. Не забудьте нажать «Опубликовать».`);} return; }
+  if(a==="albumDel"){ const src=S.data.album[i].src, u=usedIn(src);
+    if(!confirm(u.length?`Это фото используется: ${u.join(", ")}.\nУдалить его из альбома и отовсюду?`:"Удалить фото из альбома?")) return;
+    S.data.album.splice(i,1); removeEverywhere(src); rerender(); return; }
+  if(a==="homeToggle"){ const s=el.dataset.src, k=S.data.home.indexOf(s); if(k>=0) S.data.home.splice(k,1); else { if(S.data.home.length>=HOME_MAX){toast(`На главной не больше ${HOME_MAX} фото — сначала уберите одно`);return;} S.data.home.push(s);} rerender(); return; }
+  // главная
+  if(a==="homePick"){ const ch=await pickFromAlbum("Фото на главную",HOME_MAX-S.data.home.length,S.data.home); S.data.home.push(...ch); rerender(); return; }
+  if(a==="homeDel"){ S.data.home.splice(i,1); rerender(); return; }
+  // каталог
+  if(a==="prodAdd"){ const name="Новая конструкция"; const id=uniqId("tsk-"+Date.now().toString(36),S.data.products);
+    S.data.products.push({id,name,code:"Туристский спортивный комплекс",model:0,defaultVariant:0,desc:"",stages:[],schemes:[],photos:[],variants:[{name:"",L:"",W:"",n:"",use:"full"}]}); S.sel=id; rerender(); return; }
+  if(a==="prodDel"){ const p=curProd(); if(!confirm(`Удалить конструкцию «${p.name}» из каталога?`)) return; S.data.products=S.data.products.filter(x=>x!==p); S.sel=S.data.products[0]?.id||null; rerender(); return; }
+  if(a==="varAdd"){ const p=curProd(); const last=p.variants[p.variants.length-1]||{}; p.variants.push({name:(p.name||"")+" ",L:"",W:"",n:"",use:last.use||"full"}); rerender(); return; }
+  if(a==="varDel"){ const p=curProd(); if(p.variants.length<=1){toast("Должен остаться хотя бы один вариант");return;} if(!confirm(`Удалить вариант «${p.variants[i].name}»?`)) return; p.variants.splice(i,1); if((+p.defaultVariant||0)>=p.variants.length) p.defaultVariant=0; else if((+p.defaultVariant||0)>i) p.defaultVariant--; rerender(); return; }
+  if(a==="defv"){ curProd().defaultVariant=i; touch(); return; }
+  if(a==="schemeAdd"){ const ps=await uploadMany("images",true); const p=curProd(); ps.forEach(x=>p.schemes.push({title:"Схема",src:x})); if(ps.length) rerender(); return; }
+  if(a==="schemeRep"){ const ps=await uploadMany("images",false); if(ps[0]){ curProd().schemes[i].src=ps[0]; rerender(); } return; }
+  if(a==="schemeDel"){ if(!confirm("Удалить схему?")) return; curProd().schemes.splice(i,1); rerender(); return; }
+  if(a==="pPhotoPick"){ const p=curProd(); const ch=await pickFromAlbum("Фото для «"+p.name+"»",0,p.photos); p.photos.push(...ch); rerender(); return; }
+  if(a==="pPhotoUp"){ const p=curProd(); const ps=await uploadMany("photos"); p.photos.push(...ps); if(ps.length&&confirm("Добавить загруженные фото и в фотоальбом?")) ps.forEach(x=>S.data.album.push({src:x,caption:""})); rerender(); return; }
+  if(a==="pPhotoDel"){ curProd().photos.splice(i,1); rerender(); return; }
+  // новости
+  if(a==="newsAdd"){ const d=new Date(), p2=n=>String(n).padStart(2,"0"); const date=`${d.getFullYear()}-${p2(d.getMonth()+1)}-${p2(d.getDate())}`;
+    const id=uniqId("n-"+date,S.data.news); S.data.news.push({id,date,title:"",text:"",photos:[]}); S.sel=id; rerender(); const t=document.querySelector('[data-bind$=".title"]'); if(t) t.focus(); return; }
+  if(a==="newsDel"){ const n=curNews(); if(!confirm(`Удалить новость «${n.title||"без заголовка"}»?`)) return; S.data.news=S.data.news.filter(x=>x!==n); S.sel=null; rerender(); return; }
+  if(a==="nPhotoPick"){ const n=curNews(); const ch=await pickFromAlbum("Фото к новости",0,n.photos); n.photos.push(...ch); rerender(); return; }
+  if(a==="nPhotoUp"){ const n=curNews(); const ps=await uploadMany("photos"); n.photos.push(...ps); if(n.toAlbum) ps.forEach(x=>S.data.album.push({src:x,caption:n.title||""})); rerender(); return; }
+  if(a==="nPhotoDel"){ curNews().photos.splice(i,1); rerender(); return; }
+  if(a==="nToAlbum"){ const n=curNews(); if(el.checked) n.toAlbum=true; else delete n.toAlbum; touch(); return; }
+});
+
+/* перетаскивание плиток мышью */
+function bindDrag(){
+  document.querySelectorAll("[data-drag]").forEach(g=>{
+    let from=null;
+    g.addEventListener("dragstart",e=>{const t=e.target.closest(".tile"); if(!t) return; from=+t.dataset.i; t.classList.add("drag"); e.dataTransfer.effectAllowed="move"; try{e.dataTransfer.setData("text/plain",String(from));}catch(_){}});
+    g.addEventListener("dragend",e=>{const t=e.target.closest(".tile"); if(t) t.classList.remove("drag");});
+    g.addEventListener("dragover",e=>{ if(from!==null){e.preventDefault();} });
+    g.addEventListener("drop",e=>{ e.preventDefault(); const t=e.target.closest(".tile"); if(from===null||!t) return; const to=+t.dataset.i; const list=S.data[g.dataset.drag]; const [x]=list.splice(from,1); list.splice(to,0,x); from=null; rerender(); });
+  });
+}
+window.addEventListener("beforeunload",e=>{ if(dirty()||S.busy){ e.preventDefault(); e.returnValue=""; } });
+
+/* ===== Запуск ===== */
+(async()=>{
+  const t=store.get("tsk-admin-token")||sstore.get("tsk-admin-token");
+  if(t){ $("#app").innerHTML=`<div class="wrap"><div class="login"><p><span class="spinner"></span> Загружаю данные сайта…</p></div></div>`;
+    try{ S.token=t; await login(t,!!store.get("tsk-admin-token")); }catch(e){ S.token=null; S.error=e.status===401?"Сохранённый ключ больше не действует. Войдите заново.":e.message; render(); } }
+  else render();
+})();
+</script>
+</body>
+</html>

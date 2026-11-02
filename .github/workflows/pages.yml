@@ -3,6 +3,7 @@ name: Публикация сайта
 on:
   push:
     branches: [main]
+    paths-ignore: ['README.md', 'ИНСТРУКЦИЯ.md']
   workflow_dispatch:
 
 permissions:
@@ -28,9 +29,8 @@ jobs:
           npm install --no-audit --no-fund three@0.128.0 @fontsource/golos-text@5 @fontsource/russo-one@5 @fontsource/jetbrains-mono@5
       - name: Собрать папку сайта
         run: |
+          node scripts/build.mjs
           mkdir -p _site/vendor/three _site/vendor/fonts
-          cp -r index.html eng winter _site/
-          [ -f CNAME ] && cp CNAME _site/ || true
           cp /tmp/deps/node_modules/three/build/three.min.js _site/vendor/three/
           cp /tmp/deps/node_modules/three/examples/js/controls/OrbitControls.js _site/vendor/three/
           for f in golos-text russo-one jetbrains-mono; do
