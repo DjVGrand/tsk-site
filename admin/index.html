@@ -219,7 +219,84 @@ async function reload(){
   if(S.view==="news"&&!S.data.news.find(p=>p.id===S.sel)) S.sel=null;
   render();
 }
-function logout(){store.del("tsk-admin-token");sstore.del("tsk-admin-token");S.token=null;S.user=null;S.data=null;render();}
+function logout(){store.del("tsk-admin-token");sstore.del("tsk-admin-token");S.token=null;S.user=null;S.data=null;S.mode=AUTH?"pass":"token";render();}
+
+/* ===== Вход по паролю: ключ GitHub хранится в admin/auth.json, зашифрованный паролем ===== */
+const KDF_ITER=600000;
+let AUTH=null; // содержимое auth.json, если вход по паролю настроен
+const b64e=buf=>btoa(String.fromCharCode(...new Uint8Array(buf)));
+const b64d=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
+async function deriveKey(pass,salt,iter){
+  const base=await crypto.subtle.importKey("raw",new TextEncoder().encode(pass),"PBKDF2",false,["deriveKey"]);
+  return crypto.subtle.deriveKey({name:"PBKDF2",hash:"SHA-256",salt,iterations:iter},base,{name:"AES-GCM",length:256},false,["encrypt","decrypt"]);
+}
+async function encryptToken(token,pass){
+  const salt=crypto.getRandomValues(new Uint8Array(16)), iv=crypto.getRandomValues(new Uint8Array(12));
+  const key=await deriveKey(pass,salt,KDF_ITER);
+  const ct=await crypto.subtle.encrypt({name:"AES-GCM",iv},key,new TextEncoder().encode(token));
+  const d=new Date();
+  return {v:1,kdf:"PBKDF2-SHA256",iter:KDF_ITER,salt:b64e(salt),iv:b64e(iv),ct:b64e(ct),updated:d.toISOString().slice(0,10)};
+}
+async function decryptToken(a,pass){
+  const key=await deriveKey(pass,b64d(a.salt),a.iter);
+  try{ const pt=await crypto.subtle.decrypt({name:"AES-GCM",iv:b64d(a.iv)},key,b64d(a.ct)); return new TextDecoder().decode(pt); }
+  catch(e){ const err=new Error("Неверный пароль"); err.badPass=true; throw err; }
+}
+async function loadAuth(){
+  try{ const r=await fetch("auth.json?"+Date.now(),{cache:"no-store"}); if(r.ok){ const a=await r.json(); if(a&&a.ct) return a; } }catch(e){}
+  return null;
+}
+async function saveAuth(obj,message){
+  // obj=null — удалить файл (отключить вход по паролю)
+  let sha=null; try{ sha=(await gh(`${R}/contents/admin/auth.json?ref=${BRANCH}`)).sha; }catch(e){ if(e.status!==404) throw e; }
+  if(obj===null){ if(sha) await gh(`${R}/contents/admin/auth.json`,{method:"DELETE",body:JSON.stringify({message,sha,branch:BRANCH})}); return; }
+  const content=btoa(unescape(encodeURIComponent(JSON.stringify(obj,null,1)+"\n")));
+  await gh(`${R}/contents/admin/auth.json`,{method:"PUT",body:JSON.stringify({message,content,branch:BRANCH,...(sha?{sha}:{})})});
+}
+const strongEnough=p=>p.length>=14;
+
+function accessModal(){
+  const m=document.createElement("div"); m.className="modal";
+  const has=!!AUTH;
+  m.innerHTML=`<div class="box" role="dialog" aria-modal="true" aria-label="Доступ к панели" style="width:min(640px,100%)">
+    <div class="bh"><h3>Доступ к панели</h3><button class="ibtn" data-x aria-label="Закрыть">✕</button></div>
+    <div class="bb stack">
+      <div class="note">${has?`Вход по паролю включён${AUTH.updated?` (пароль задан ${esc(AUTH.updated)})`:""}. Сотрудникам нужен только пароль.`:`Вход по паролю пока не настроен — сейчас войти можно только по ключу GitHub.`}</div>
+      <form class="stack" id="passForm">
+        <h3>${has?"Сменить пароль":"Включить вход по паролю"}</h3>
+        <label class="f">Ключ GitHub <span class="h">оставьте пустым, чтобы использовать текущий; вставьте новый, если заменяете ключ</span><input class="t" id="apTok" type="password" autocomplete="off" placeholder="github_pat_…"></label>
+        <label class="f">Новый пароль <span class="h">не короче 14 символов; лучше 4–5 случайных слов</span><input class="t" id="apP1" type="password" autocomplete="new-password" required></label>
+        <label class="f">Пароль ещё раз<input class="t" id="apP2" type="password" autocomplete="new-password" required></label>
+        <div class="err" id="apErr"></div>
+        <div><button class="btn pri" type="submit" id="apBtn">${has?"Сохранить новый пароль":"Включить вход по паролю"}</button></div>
+      </form>
+      <div class="note"><b>Если сотрудник уходит или пароль мог попасть к посторонним:</b> создайте в GitHub новый ключ, удалите старый (Settings → Developer settings → Personal access tokens) и задайте здесь новый пароль вместе с новым ключом. Простая смена пароля без нового ключа не закрывает доступ тем, кто уже входил.</div>
+      ${has?`<div><button class="btn danger sm" data-off>Отключить вход по паролю</button></div>`:""}
+    </div></div>`;
+  document.body.appendChild(m);
+  const close=()=>m.remove();
+  m.addEventListener("click",async e=>{
+    if(e.target===m||e.target.closest("[data-x]")) return close();
+    if(e.target.closest("[data-off]")){ if(!confirm("Отключить вход по паролю? Войти можно будет только по ключу GitHub.")) return;
+      try{ await saveAuth(null,`Панель: вход по паролю отключён (${S.name||S.user})`); AUTH=null; close(); toast("Вход по паролю отключён. Изменение вступит в силу через 1–2 минуты."); }catch(err){ toast("Ошибка: "+err.message,6000); } }
+  });
+  m.querySelector("#passForm").addEventListener("submit",async e=>{
+    e.preventDefault();
+    const err=m.querySelector("#apErr"), btn=m.querySelector("#apBtn"); err.textContent="";
+    const p1=m.querySelector("#apP1").value, p2=m.querySelector("#apP2").value, nt=m.querySelector("#apTok").value.trim();
+    if(p1!==p2){ err.textContent="Пароли не совпадают."; return; }
+    if(!strongEnough(p1)){ err.textContent="Пароль слишком короткий: нужно не меньше 14 символов."; return; }
+    btn.disabled=true; btn.innerHTML=`<span class="spinner"></span> Сохраняю…`;
+    try{
+      let tok=S.token;
+      if(nt){ const old=S.token; S.token=nt; try{ const repo=await gh(R); if(!repo.permissions||!repo.permissions.push) throw new Error("У нового ключа нет права изменять репозиторий сайта."); }catch(x){ S.token=old; throw x.status===401?new Error("Новый ключ не подошёл."):x; } tok=nt; }
+      const obj=await encryptToken(tok,p1);
+      await saveAuth(obj,`Панель: ${AUTH?"сменён пароль":"включён вход по паролю"}${nt?" и ключ":""} (${S.name||S.user})`);
+      AUTH=obj; if(nt){ S.token=nt; if(store.get("tsk-admin-token")) store.set("tsk-admin-token",nt); else sstore.set("tsk-admin-token",nt); }
+      close(); toast("Готово. Новый пароль заработает через 1–2 минуты, когда обновится сайт.",6000);
+    }catch(x){ err.textContent=x.message||String(x); btn.disabled=false; btn.textContent="Повторить"; }
+  });
+}
 
 /* ===== Изменения ===== */
 const dirty=()=>S.data&&JSON.stringify(S.data)!==S.baseStr;
@@ -284,7 +361,7 @@ async function publish(force=false){
     const gone=[...was].filter(p=>!now.has(p));
     if(gone.length){ const t=await gh(`${R}/git/trees/${baseTree}?recursive=1`); const ex=new Set(t.tree.map(x=>x.path)); gone.filter(p=>ex.has(p)).forEach(p=>entries.push({path:p,mode:"100644",type:"blob",sha:null})); }
     const tree=await gh(`${R}/git/trees`,{method:"POST",body:JSON.stringify({base_tree:baseTree,tree:entries})});
-    const msg=`Панель управления: ${changedParts().join(", ")||"изменения"} (${S.user})`;
+    const msg=`Панель управления: ${changedParts().join(", ")||"изменения"} (${S.name||S.user})`;
     const commit=await gh(`${R}/git/commits`,{method:"POST",body:JSON.stringify({message:msg,tree:tree.sha,parents:[head]})});
     await gh(`${R}/git/refs/heads/${BRANCH}`,{method:"PATCH",body:JSON.stringify({sha:commit.sha,force:false})});
     for(const [p,u] of S.uploads) if(now.has(p)) S.shown.set(p,u.url);
@@ -329,7 +406,8 @@ function render(){
       <a class="brand" href="${SITE_URL}" target="_blank" rel="noopener"><b>ТСК</b><span>управление сайтом</span></a>
       <nav class="tabs" role="tablist">${T.map(([k,t])=>`<button class="tab" role="tab" data-act="view" data-v="${k}" aria-selected="${S.view===k}">${t}<span class="cnt">${c[k]}</span></button>`).join("")}</nav>
       <span class="sp"></span>
-      <span class="small muted">${esc(S.user)}</span>
+      <span class="small muted">${esc(S.name||S.user)}</span>
+      <button class="btn sm" data-act="access">Доступ</button>
       <button class="btn sm" data-act="logout">Выйти</button>
     </div></header>
     <div class="bar"><div class="wrap">
@@ -356,7 +434,17 @@ function renderBar(text,cls){
 function loginHTML(){
   return `<div class="wrap"><div class="login">
     <div><h1 style="font-size:1.6rem">ТСК · управление сайтом</h1><p class="muted" style="margin:6px 0 0">Фотоальбом, каталог и новости сайта tsk-st.ru.</p></div>
-    <form class="panel" id="loginForm">
+    ${S.mode==="pass"?`<form class="panel" id="passLogin">
+      <label class="f">Ваше имя <span class="h">попадёт в историю изменений</span><input class="t" id="nameIn" autocomplete="name" value="${esc(store.get("tsk-admin-name")||"")}" required></label>
+      <label class="f">Пароль<input class="t" id="passIn" type="password" autocomplete="current-password" required></label>
+      <label style="display:flex;gap:8px;align-items:center;font-size:.9rem"><input type="checkbox" id="remIn2"> Запомнить на этом устройстве</label>
+      <div class="err">${esc(S.error)}</div>
+      <button class="btn pri" type="submit" id="passBtn">Войти</button>
+    </form>
+    <p class="small"><a href="#" data-mode="token">Войти по ключу GitHub</a></p>
+    <p class="small muted">Пароль выдаёт владелец сайта. Если забыли пароль — спросите у него.</p>
+  </div></div>`:""}
+    ${S.mode==="pass"?"":`${AUTH?`<p class="small"><a href="#" data-mode="pass">← Войти по паролю</a></p>`:""}<form class="panel" id="loginForm">
       <label class="f">Ключ доступа GitHub<input class="t" id="tokIn" type="password" autocomplete="off" placeholder="github_pat_… или ghp_…" required></label>
       <label style="display:flex;gap:8px;align-items:center;font-size:.9rem"><input type="checkbox" id="remIn" checked> Запомнить на этом устройстве</label>
       <div class="err" id="loginErr">${esc(S.error)}</div>
@@ -365,12 +453,12 @@ function loginHTML(){
     <details><summary>Где взять ключ доступа</summary>
       <ol>
         <li><b>Владелец сайта</b> (аккаунт ${OWNER}): откройте <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">создание ключа</a>. В «Repository access» выберите «Only select repositories» → <b>${REPO}</b>. В «Permissions» поставьте <b>Contents: Read and write</b> и <b>Actions: Read-only</b>. Нажмите «Generate token» и скопируйте ключ.</li>
-        <li><b>Сотрудник</b>: сначала владелец добавляет его в репозиторий — <a href="https://github.com/${OWNER}/${REPO}/settings/access" target="_blank" rel="noopener">Settings → Collaborators → Add people</a>, сотрудник принимает приглашение из письма. Затем сотрудник открывает <a href="https://github.com/settings/tokens/new?scopes=public_repo&description=TSK%20site" target="_blank" rel="noopener">создание ключа (classic)</a>, отмечает только <b>public_repo</b>, задаёт срок действия и нажимает «Generate token».</li>
+        <li><b>Сотрудникам</b> ключ не нужен: владелец включает вход по паролю (кнопка «Доступ» в панели) и сообщает пароль.</li>
         <li>Ключ показывается один раз — сохраните его в надёжном месте. Не пересылайте его по почте и в мессенджерах. Если ключ потерян или попал к посторонним, удалите его в настройках GitHub и создайте новый.</li>
       </ol>
     </details>
-    <p class="small muted">Ключ хранится только в этом браузере и отправляется только в GitHub.</p>
-  </div></div>`;
+    <p class="small muted">Ключ хранится только в этом браузере и отправляется только в GitHub. После входа по ключу можно включить вход по паролю для сотрудников: кнопка «Доступ» вверху панели.</p>
+  </div></div>`}`;
 }
 function viewHTML(){
   if(S.view==="album") return albumHTML();
@@ -502,6 +590,12 @@ function removeEverywhere(src){
 }
 
 document.addEventListener("submit",async e=>{
+  if(e.target.id==="passLogin"){ e.preventDefault();
+    const name=$("#nameIn").value.trim(), pass=$("#passIn").value, rem=$("#remIn2").checked, btn=$("#passBtn"); if(!name||!pass) return;
+    btn.disabled=true; btn.innerHTML=`<span class="spinner"></span> Проверяю пароль…`; S.error="";
+    try{ const tok=await decryptToken(AUTH,pass); S.name=name; store.set("tsk-admin-name",name); await login(tok,rem); }
+    catch(err){ S.token=null; S.error=err.badPass?"Неверный пароль.":err.status===401?"Ключ доступа, к которому привязан пароль, больше не действует. Сообщите владельцу сайта.":err.message; render(); }
+    return; }
   if(e.target.id!=="loginForm") return; e.preventDefault();
   const t=$("#tokIn").value.trim(), btn=$("#loginBtn"); if(!t) return;
   btn.disabled=true; btn.innerHTML=`<span class="spinner"></span> Вхожу…`; S.error="";
@@ -520,6 +614,7 @@ document.addEventListener("keydown",e=>{ if((e.key==="Enter"||e.key===" ")&&e.ta
 document.addEventListener("click",async e=>{
   const el=e.target.closest("[data-act]"); if(!el||!S.data&&el.dataset.act!=="logout") return;
   const a=el.dataset.act, i=+el.dataset.i;
+  if(a==="access"){ e.preventDefault(); accessModal(); return; }
   if(a!=="defv"&&a!=="nToAlbum") e.preventDefault();
   if(a==="view"){ S.view=el.dataset.v; S.sel=S.view==="catalog"?(S.data.products[0]?.id||null):S.view==="news"?(S.data.news.slice().sort((x,y)=>(y.date||"").localeCompare(x.date||""))[0]?.id||null):null; render(); return; }
   if(a==="logout"){ if(dirty()&&!confirm("Есть неопубликованные изменения. Выйти и потерять их?")) return; logout(); return; }
@@ -574,8 +669,11 @@ function bindDrag(){
 }
 window.addEventListener("beforeunload",e=>{ if(dirty()||S.busy){ e.preventDefault(); e.returnValue=""; } });
 
+document.addEventListener("click",e=>{ const m=e.target.closest("[data-mode]"); if(m){ e.preventDefault(); S.mode=m.dataset.mode; S.error=""; render(); } });
+
 /* ===== Запуск ===== */
 (async()=>{
+  AUTH=await loadAuth(); S.mode=AUTH?"pass":"token"; S.name=store.get("tsk-admin-name")||"";
   const t=store.get("tsk-admin-token")||sstore.get("tsk-admin-token");
   if(t){ $("#app").innerHTML=`<div class="wrap"><div class="login"><p><span class="spinner"></span> Загружаю данные сайта…</p></div></div>`;
     try{ S.token=t; await login(t,!!store.get("tsk-admin-token")); }catch(e){ S.token=null; S.error=e.status===401?"Сохранённый ключ больше не действует. Войдите заново.":e.message; render(); } }
