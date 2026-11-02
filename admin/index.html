@@ -133,6 +133,14 @@ table.v td.n input{width:80px}
 .ncard{display:flex;gap:12px;align-items:flex-start}
 .ncard .d{font-family:var(--f-mono);font-size:.78rem;color:var(--muted);white-space:nowrap}
 
+/* тексты */
+details.tg{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:0}
+details.tg summary{padding:12px 16px;cursor:pointer}
+.tgb{padding:4px 16px 16px;display:flex;flex-direction:column;gap:12px}
+.tf{display:flex;flex-direction:column;gap:4px}
+.tf-h{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:.8rem;color:var(--muted);min-height:26px}
+.tf.ch .t{border-color:var(--warn)}
+.tf.ch .tf-h span::after{content:" · изменено";color:var(--warn)}
 /* окно выбора */
 .modal{position:fixed;inset:0;z-index:20;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;padding:16px}
 .modal .box{background:var(--surface);border-radius:var(--r);width:min(900px,100%);max-height:100%;display:flex;flex-direction:column}
@@ -210,10 +218,17 @@ async function login(token,remember){
   (remember?store:sstore).set("tsk-admin-token",token);
   await reload();
 }
+async function loadDefaults(){
+  try{ const r=await fetch("../?"+Date.now(),{cache:"no-store"}); const doc=new DOMParser().parseFromString(await r.text(),"text/html");
+    S.defaults=[...doc.querySelectorAll("[data-txt]")].map(el=>{ el.querySelectorAll("br").forEach(b=>b.replaceWith("\n")); return {key:el.dataset.txt,label:el.dataset.tl||"",tag:el.tagName.toLowerCase(),def:el.textContent.replace(/\s*\n\s*/g,"\n").replace(/[ \t]+/g," ").trim()}; });
+  }catch(e){ S.defaults=[]; }
+}
 async function reload(){
+  if(!S.defaults) await loadDefaults();
   const b=await loadRemote();
   S.base=b; S.baseStr=JSON.stringify(b.data); S.data=clone(b.data);
-  S.data.album=S.data.album||[]; S.data.home=S.data.home||[]; S.data.products=S.data.products||[]; S.data.news=S.data.news||[];
+  S.data.album=S.data.album||[]; S.data.home=S.data.home||[]; S.data.products=S.data.products||[]; S.data.news=S.data.news||[]; S.data.texts=S.data.texts||{}; S.data.company=S.data.company||{}; S.data.company.buttons=S.data.company.buttons||{}; S.data.baseSpecs=S.data.baseSpecs||[];
+  S.baseStr=JSON.stringify(S.data);
   S.uploads.clear();
   if(S.view==="catalog"&&!S.data.products.find(p=>p.id===S.sel)) S.sel=S.data.products[0]?.id||null;
   if(S.view==="news"&&!S.data.news.find(p=>p.id===S.sel)) S.sel=null;
@@ -308,10 +323,13 @@ function changedParts(){
   if(!eq(b.products,d.products)) out.push("каталог");
   if(!eq(b.news||[],d.news)) out.push("новости");
   if(!eq(b.settings||{},d.settings||{})) out.push("настройки");
+  if(!eq(b.texts||{},d.texts||{})) out.push("тексты");
+  if(!eq(b.company||{},d.company||{})) out.push("о компании");
+  if(!eq(b.baseSpecs||[],d.baseSpecs||[])) out.push("характеристики");
   return out;
 }
 function refs(data){const s=new Set(); (function w(o){ if(Array.isArray(o)) o.forEach(w); else if(o&&typeof o==="object") Object.values(o).forEach(w); else if(typeof o==="string"&&/^(photos|images)\//.test(o)) s.add(o);})(data); return s;}
-function touch(){ if(S.data){ const c={album:S.data.album.length,home:S.data.home.length,catalog:S.data.products.length,news:S.data.news.length}; document.querySelectorAll(".tab[data-v]").forEach(t=>{const n=t.querySelector(".cnt"); if(n) n.textContent=c[t.dataset.v];}); }
+function touch(){ if(S.data){ const c={album:S.data.album.length,home:S.data.home.length,catalog:S.data.products.length,news:S.data.news.length,texts:"",company:""}; document.querySelectorAll(".tab[data-v]").forEach(t=>{const n=t.querySelector(".cnt"); if(n) n.textContent=c[t.dataset.v];}); }
   const pb=$("#pubBtn"); if(pb){const parts=changedParts(); pb.disabled=!parts.length||S.busy; pb.textContent=parts.length?`Опубликовать (${parts.join(", ")})`:"Изменений нет"; const rb=$("#revBtn"); if(rb) rb.hidden=!parts.length;} }
 
 /* ===== Фото: сжатие и загрузка ===== */
@@ -401,8 +419,8 @@ function validate(){
 function render(){
   const app=$("#app");
   if(!S.token||!S.data){ app.innerHTML=loginHTML(); return; }
-  const c={album:S.data.album.length,home:S.data.home.length,catalog:S.data.products.length,news:S.data.news.length};
-  const T=[["album","Фотоальбом"],["home","Главная"],["catalog","Каталог"],["news","Новости"]];
+  const c={album:S.data.album.length,home:S.data.home.length,catalog:S.data.products.length,news:S.data.news.length,texts:"",company:""};
+  const T=[["album","Фотоальбом"],["home","Главная"],["catalog","Каталог"],["news","Новости"],["texts","Тексты"],["company","О компании"]];
   app.innerHTML=`<header class="top"><div class="wrap">
       <a class="brand" href="${SITE_URL}" target="_blank" rel="noopener"><b>ТСК</b><span>управление сайтом</span></a>
       <nav class="tabs" role="tablist">${T.map(([k,t])=>`<button class="tab" role="tab" data-act="view" data-v="${k}" aria-selected="${S.view===k}">${t}<span class="cnt">${c[k]}</span></button>`).join("")}</nav>
@@ -465,6 +483,8 @@ function viewHTML(){
   if(S.view==="album") return albumHTML();
   if(S.view==="home") return homeHTML();
   if(S.view==="catalog") return catalogHTML();
+  if(S.view==="texts") return textsHTML();
+  if(S.view==="company") return companyHTML();
   return newsHTML();
 }
 const usedIn=p=>{const out=[]; if(S.data.home.includes(p)) out.push("главная"); S.data.products.forEach(x=>{ if((x.photos||[]).includes(p)||(x.schemes||[]).some(s=>s.src===p)) out.push(x.name); }); S.data.news.forEach(n=>{ if((n.photos||[]).includes(p)) out.push("новость «"+n.title+"»"); }); return out;};
@@ -552,6 +572,48 @@ function newsEditHTML(n,i){
     <div class="sec"><div><button class="btn danger" data-act="newsDel">Удалить новость</button></div></div>
   </div>`;
 }
+const TGROUPS=[["menu","Меню"],["home","Главная страница"],["catalog","Каталог"],["photos","Фотоальбом"],["news","Новости"]];
+function txtField(d){
+  const cur=S.data.texts[d.key], v=typeof cur==="string"?cur:d.def, ch=typeof cur==="string"&&cur!==d.def, long=d.tag==="p"||v.length>70;
+  return `<div class="tf${ch?" ch":""}" data-k="${esc(d.key)}"><div class="tf-h"><span>${esc(d.label)}</span>${ch?`<button class="btn sm" data-act="txtReset" data-k="${esc(d.key)}" title="Вернуть исходный текст">вернуть</button>`:""}</div>
+    ${long?`<textarea class="t" data-txtk="${esc(d.key)}" rows="${Math.min(6,Math.max(2,Math.ceil(v.length/90)))}">${esc(v)}</textarea>`:`<input class="t" data-txtk="${esc(d.key)}" value="${esc(v)}">`}</div>`;
+}
+function txtGroup(prefix,title){
+  const items=(S.defaults||[]).filter(d=>d.key.split(".")[0]===prefix); if(!items.length) return "";
+  return `<details class="tg" ${S.open&&S.open[prefix]?"open":""} data-g="${prefix}"><summary><b>${esc(title)}</b> <span class="small muted">${items.length} текст.${items.some(d=>typeof S.data.texts[d.key]==="string"&&S.data.texts[d.key]!==d.def)?" · есть изменения":""}</span></summary><div class="tgb">${items.map(txtField).join("")}</div></details>`;
+}
+function textsHTML(){
+  if(!S.defaults||!S.defaults.length) return `<div class="empty">Не удалось загрузить тексты сайта. Нажмите «Обновить».</div>`;
+  return `<div class="head"><div><h2>Тексты страниц</h2><p>Все надписи и тексты сайта по разделам. Тексты раздела «О компании» — на вкладке «О компании». Перенос строки в тексте (Enter) — перенос строки на сайте.</p></div></div>
+    <div class="stack">${TGROUPS.map(([k,t])=>txtGroup(k,t)).join("")}
+    <details class="tg" ${S.open&&S.open.specs?"open":""} data-g="specs"><summary><b>Карточка конструкции — таблица «Конструкция»</b> <span class="small muted">общая для всех конструкций</span></summary><div class="tgb">
+      <div class="tscroll"><table class="v"><thead><tr><th>Характеристика</th><th>Значение</th><th></th></tr></thead><tbody>
+      ${S.data.baseSpecs.map((r,i)=>`<tr><td><input class="t" data-bind="baseSpecs.${i}.0" value="${esc(r[0])}"></td><td><input class="t" data-bind="baseSpecs.${i}.1" value="${esc(r[1])}"></td><td style="white-space:nowrap"><button class="ibtn" data-act="mv" data-list="baseSpecs" data-i="${i}" data-d="-1" aria-label="Выше">↑</button><button class="ibtn danger" data-act="specDel" data-i="${i}" aria-label="Удалить строку">✕</button></td></tr>`).join("")}
+      </tbody></table></div><div><button class="btn sm" data-act="specAdd">+ Строка</button></div></div></details></div>`;
+}
+function companyHTML(){
+  const C=S.data.company, B=C.buttons, b="company";
+  return `<div class="head"><div><h2>О компании</h2><p>Название и контакты показываются в шапке, подвале и на странице «О компании». Ниже — все тексты этой страницы.</p></div></div>
+  <div class="stack">
+    <div class="panel stack"><h3>Компания и контакты</h3>
+      <label class="f">Название компании<input class="t" data-bind="${b}.name" value="${esc(C.name)}"></label>
+      <div class="row"><label class="f">Телефоны <span class="h">по одному на строку; первый — в шапке и подвале</span><textarea class="t" data-bind="${b}.phones" data-lines rows="3">${esc((C.phones||[]).join("\n"))}</textarea></label>
+        <div class="stack"><label class="f">Почта<input class="t" type="email" data-bind="${b}.email" value="${esc(C.email)}"></label>
+        <label class="f">Подпись к почте<input class="t" data-bind="${b}.emailNote" value="${esc(C.emailNote)}"></label></div></div>
+      <div class="row"><label class="f">Адрес<input class="t" data-bind="${b}.address" value="${esc(C.address)}"></label>
+        <label class="f">Адрес для корреспонденции <span class="h">необязательно</span><input class="t" data-bind="${b}.postAddress" value="${esc(C.postAddress)}"></label></div>
+    </div>
+    <div class="panel stack"><h3>Кнопки «Свяжитесь с нами» на главной</h3>
+      <p class="small muted" style="margin:0">Пустое поле — кнопка показывается с надписью «Контакт появится позже» и не нажимается.</p>
+      <div class="row"><label class="f">Номер для кнопки «Позвонить»<input class="t" type="tel" data-bind="${b}.buttons.phone" value="${esc(B.phone)}" placeholder="+7 (900) 000-00-00"></label>
+        <label class="f">Номер WhatsApp <span class="h">с кодом страны, например 79000000000</span><input class="t" inputmode="tel" data-bind="${b}.buttons.whatsapp" value="${esc(B.whatsapp)}"></label></div>
+      <div class="row"><label class="f">Ссылка на чат в MAX <span class="h">скопируйте в приложении MAX</span><input class="t" type="url" data-bind="${b}.buttons.max" value="${esc(B.max)}" placeholder="https://max.ru/…"></label>
+        <label class="f">Почта для кнопки «Написать на почту»<input class="t" type="email" data-bind="${b}.buttons.email" value="${esc(B.email)}"></label></div>
+    </div>
+    ${txtGroup("about","Тексты страницы «О компании»")||""}
+    ${txtGroup("footer","Подвал")||""}
+  </div>`;
+}
 const MONTHS=["января","февраля","марта","апреля","мая","июня","июля","августа","сентября","октября","ноября","декабря"];
 const fmtDate=d=>{const m=/^(\d{4})-(\d{2})-(\d{2})/.exec(d||""); return m?`${+m[3]} ${MONTHS[+m[2]-1]} ${m[1]}`:"дата не указана";};
 
@@ -606,6 +668,11 @@ document.addEventListener("submit",async e=>{
   catch(err){ S.token=null; S.error=err.status===401?"Ключ не подошёл: проверьте, что он скопирован полностью и не истёк.":err.status===404?"Нет доступа к репозиторию сайта. Проверьте права ключа (репозиторий tsk-site).":err.message; render(); }
 });
 document.addEventListener("input",e=>{
+  const tk=e.target.closest("[data-txtk]");
+  if(tk&&S.data){ const k=tk.dataset.txtk, d=(S.defaults||[]).find(x=>x.key===k), v=tk.value;
+    if(d&&v===d.def) delete S.data.texts[k]; else S.data.texts[k]=v;
+    const box=tk.closest(".tf"); if(box){ const ch=typeof S.data.texts[k]==="string"; box.classList.toggle("ch",ch); const h=box.querySelector(".tf-h"); if(ch&&!h.querySelector("button")) h.insertAdjacentHTML("beforeend",`<button class="btn sm" data-act="txtReset" data-k="${esc(k)}">вернуть</button>`); if(!ch){const bb=h.querySelector("button"); if(bb) bb.remove();} }
+    touch(); return; }
   const el=e.target.closest("[data-bind]"); if(!el||!S.data) return;
   let v=el.value; if(el.hasAttribute("data-lines")) v=v.split("\n").map(s=>s.trim()).filter(Boolean);
   else if(el.hasAttribute("data-num")) v=v===""?"":(isNaN(+String(v).replace(",","."))?v:+String(v).replace(",","."));
@@ -657,9 +724,14 @@ document.addEventListener("click",async e=>{
   if(a==="nPhotoPick"){ const n=curNews(); const ch=await pickFromAlbum("Фото к новости",0,n.photos); n.photos.push(...ch); rerender(); return; }
   if(a==="nPhotoUp"){ const n=curNews(); const ps=await uploadMany("photos"); n.photos.push(...ps); if(n.toAlbum) ps.forEach(x=>S.data.album.push({src:x,caption:n.title||""})); rerender(); return; }
   if(a==="nPhotoDel"){ curNews().photos.splice(i,1); rerender(); return; }
+  if(a==="txtReset"){ delete S.data.texts[el.dataset.k]; rerender(); return; }
+  if(a==="specAdd"){ S.data.baseSpecs.push(["",""]); rerender(); return; }
+  if(a==="specDel"){ S.data.baseSpecs.splice(i,1); rerender(); return; }
   if(a==="newsVis"){ S.data.settings=S.data.settings||{}; if(el.checked) delete S.data.settings.newsVisible; else S.data.settings.newsVisible=false; if(!Object.keys(S.data.settings).length) delete S.data.settings; rerender(); return; }
   if(a==="nToAlbum"){ const n=curNews(); if(el.checked) n.toAlbum=true; else delete n.toAlbum; touch(); return; }
 });
+
+document.addEventListener("toggle",e=>{ const d=e.target; if(d.matches&&d.matches("details.tg")){ S.open=S.open||{}; S.open[d.dataset.g]=d.open; } },true);
 
 /* перетаскивание плиток мышью */
 function bindDrag(){
