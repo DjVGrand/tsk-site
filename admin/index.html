@@ -572,7 +572,7 @@ function newsEditHTML(n,i){
     <div class="sec"><div><button class="btn danger" data-act="newsDel">Удалить новость</button></div></div>
   </div>`;
 }
-const TGROUPS=[["menu","Меню"],["home","Главная страница"],["catalog","Каталог"],["photos","Фотоальбом"],["news","Новости"]];
+const TGROUPS=[["menu","Меню"],["home","Главная страница"],["pick","Главная — подбор комплекса"],["catalog","Каталог"],["photos","Фотоальбом"],["news","Новости"]];
 function txtField(d){
   const cur=S.data.texts[d.key], v=typeof cur==="string"?cur:d.def, ch=typeof cur==="string"&&cur!==d.def, long=d.tag==="p"||v.length>70;
   return `<div class="tf${ch?" ch":""}" data-k="${esc(d.key)}"><div class="tf-h"><span>${esc(d.label)}</span>${ch?`<button class="btn sm" data-act="txtReset" data-k="${esc(d.key)}" title="Вернуть исходный текст">вернуть</button>`:""}</div>
