@@ -3,7 +3,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="description" content="Туристские спортивные комплексы ТСК из алюминиевых ферм для тренировок и соревнований по спортивному туризму. ООО «Современные технологии спорта».">
-<title>ТСК Комплексы</title>
+<title>ТСК Инженерный стиль</title>
 <link rel="stylesheet" href="vendor/fonts/golos-text/400.css">
 <link rel="stylesheet" href="vendor/fonts/golos-text/500.css">
 <link rel="stylesheet" href="vendor/fonts/golos-text/600.css">
@@ -308,6 +308,38 @@ footer small{opacity:.7}
 .pprev{left:10px}.pnext{right:10px}
 .pcount{position:absolute;right:10px;bottom:10px;background:rgba(0,0,0,.55);color:#fff;font-family:var(--f-mono);font-size:.75rem;padding:3px 8px;border-radius:3px}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+
+/* ===== Инженерный стиль: металл и алюминий ===== */
+:root{ --bg:#E6E8EA; --surface:#F6F7F8; --ink:#1D2227; --muted:#58616A; --line:#C2C8CD; --field:#D3D7DB; --field-ink:#1D2227; --rope:#3C4650; --rope-ink:#FFFFFF; --soft:#DCDFE2; --grid:rgba(29,34,39,.07); --grid2:rgba(29,34,39,.13); --truss:#88929A; --hdr:linear-gradient(180deg,#F7F8F9,#D8DCDF); --deep:#262B31; --deep-ink:#DDE1E5; --snow:transparent; --shadow:rgba(20,25,30,.22); --metal:linear-gradient(180deg,#5B6670,#343C44); --brush:rgba(255,255,255,.35); --rule:#1D2227; --r:3px; }
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){ --bg:#14171A; --surface:#1D2125; --ink:#E1E5E8; --muted:#97A0A8; --line:#343A40; --field:#22272C; --field-ink:#E1E5E8; --rope:#B4BCC3; --rope-ink:#14171A; --soft:#262B30; --grid:rgba(225,229,232,.05); --grid2:rgba(225,229,232,.09); --truss:#5D666E; --hdr:linear-gradient(180deg,#2B3036,#1D2125); --deep:#0D0F11; --deep-ink:#C9CFD4; --snow:transparent; --shadow:rgba(0,0,0,.5); --metal:linear-gradient(180deg,#D3D9DE,#9AA3AB); --brush:rgba(255,255,255,.04); --rule:#B4BCC3; color-scheme:dark }}
+:root[data-theme="dark"]{ --bg:#14171A; --surface:#1D2125; --ink:#E1E5E8; --muted:#97A0A8; --line:#343A40; --field:#22272C; --field-ink:#E1E5E8; --rope:#B4BCC3; --rope-ink:#14171A; --soft:#262B30; --grid:rgba(225,229,232,.05); --grid2:rgba(225,229,232,.09); --truss:#5D666E; --hdr:linear-gradient(180deg,#2B3036,#1D2125); --deep:#0D0F11; --deep-ink:#C9CFD4; --snow:transparent; --shadow:rgba(0,0,0,.5); --metal:linear-gradient(180deg,#D3D9DE,#9AA3AB); --brush:rgba(255,255,255,.04); --rule:#B4BCC3; color-scheme:dark }
+body{background:repeating-linear-gradient(90deg,var(--brush) 0 1px,transparent 1px 5px),var(--bg)}
+header.top{border-bottom:1px solid var(--line);-webkit-backdrop-filter:none;backdrop-filter:none}
+.hero{background:linear-gradient(var(--grid) 1px,transparent 1px) 0 0/24px 24px,linear-gradient(90deg,var(--grid) 1px,transparent 1px) 0 0/24px 24px,linear-gradient(var(--grid2) 1px,transparent 1px) 0 0/120px 120px,linear-gradient(90deg,var(--grid2) 1px,transparent 1px) 0 0/120px 120px,repeating-linear-gradient(90deg,var(--brush) 0 1px,transparent 1px 4px),linear-gradient(180deg,var(--field),var(--bg))}
+.cat-head,.band{background:linear-gradient(var(--grid) 1px,transparent 1px) 0 0/24px 24px,linear-gradient(90deg,var(--grid) 1px,transparent 1px) 0 0/24px 24px,linear-gradient(var(--grid2) 1px,transparent 1px) 0 0/120px 120px,linear-gradient(90deg,var(--grid2) 1px,transparent 1px) 0 0/120px 120px,repeating-linear-gradient(90deg,var(--brush) 0 1px,transparent 1px 4px),linear-gradient(180deg,var(--field),var(--soft))}
+.btn-rope{background:var(--metal);color:var(--rope-ink);box-shadow:inset 0 1px 0 rgba(255,255,255,.25),0 2px 0 rgba(0,0,0,.25)}
+.btn-rope:hover{filter:brightness(1.08)}
+nav.menu a[aria-current="page"]{background:var(--metal);color:var(--rope-ink);box-shadow:inset 0 1px 0 rgba(255,255,255,.25)}
+.hero h1 em{color:var(--muted)}
+.eyebrow{letter-spacing:.16em}
+.eyebrow::before{content:"▸ "}
+.sec-head h2,.cat-head h1{position:relative;padding-bottom:12px}
+.sec-head h2::after,.cat-head h1::after{content:"";position:absolute;left:0;bottom:0;width:96px;height:9px;
+  background:linear-gradient(var(--rule),var(--rule)) 0 50%/100% 1.5px no-repeat,linear-gradient(var(--rule),var(--rule)) 0 0/1.5px 100% no-repeat,linear-gradient(var(--rule),var(--rule)) 100% 0/1.5px 100% no-repeat}
+.hero-facts b,.kfacts b{font-family:var(--f-mono);font-weight:600;letter-spacing:-.01em}
+.card,.benefits,.cert,.dialog{border-radius:var(--r)}
+.card,.cert,.benefit{background:linear-gradient(180deg,var(--surface),var(--soft));box-shadow:inset 0 1px 0 rgba(255,255,255,.6)}
+.card{position:relative}
+.card::after{content:"";position:absolute;inset:6px;pointer-events:none;
+  background:radial-gradient(circle,var(--truss) 0 2px,transparent 2.6px) 0 0/8px 8px no-repeat,radial-gradient(circle,var(--truss) 0 2px,transparent 2.6px) 100% 0/8px 8px no-repeat,radial-gradient(circle,var(--truss) 0 2px,transparent 2.6px) 0 100%/8px 8px no-repeat,radial-gradient(circle,var(--truss) 0 2px,transparent 2.6px) 100% 100%/8px 8px no-repeat}
+.card:hover{border-color:var(--ink)}
+.badge{background:var(--metal);border-radius:2px}
+.step,.svc-i{border-top:3px solid transparent;border-image:var(--metal) 1}
+.step .n{color:var(--muted);font-family:var(--f-mono)}
+.contact{border-left:3px solid var(--truss)}
+.vchip[aria-pressed="true"]{background:var(--metal);border-color:var(--rope)}
+.plate{border-radius:2px;background:linear-gradient(180deg,#FAFBFB,#DADEE1)}
+footer{background:repeating-linear-gradient(90deg,rgba(255,255,255,.03) 0 1px,transparent 1px 4px),var(--deep)}
 </style>
 
 <header class="top">
@@ -374,7 +406,7 @@ footer small{opacity:.7}
       </div>
     </section>
 
-    <div class="wrap" aria-hidden="true"><div class="truss-c" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 22 22" aria-hidden="true"><g stroke="currentColor" stroke-width="1.6" stroke-linecap="round" fill="none"><path d="M11 1v20M2.3 6l17.4 10M2.3 16L19.7 6"/><path d="M8 3l3 2.5L14 3M8 19l3-2.5 3 2.5M3 9.5l3.5-.6L5.3 5.5M16.7 16.5l-1.2-3.4 3.5.6M3 12.5l3.5.6-1.2 3.4M16.7 5.5l-1.2 3.4 3.5-.6"/></g></svg></div></div>
+    <div class="wrap" aria-hidden="true"><div class="truss-c" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 22 22" aria-hidden="true"><path d="M6 2.5h10L21 11l-5 8.5H6L1 11z" fill="currentColor" opacity=".25" stroke="currentColor" stroke-width="1.4"/><circle cx="11" cy="11" r="4" fill="none" stroke="currentColor" stroke-width="1.6"/></svg></div></div>
     <section style="padding-top:0">
       <div class="wrap">
         <div class="sec-head">
@@ -482,7 +514,7 @@ footer small{opacity:.7}
       </div>
     </section>
 
-    <div class="wrap" aria-hidden="true"><div class="truss-c" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 22 22" aria-hidden="true"><g stroke="currentColor" stroke-width="1.6" stroke-linecap="round" fill="none"><path d="M11 1v20M2.3 6l17.4 10M2.3 16L19.7 6"/><path d="M8 3l3 2.5L14 3M8 19l3-2.5 3 2.5M3 9.5l3.5-.6L5.3 5.5M16.7 16.5l-1.2-3.4 3.5.6M3 12.5l3.5.6-1.2 3.4M16.7 5.5l-1.2 3.4 3.5-.6"/></g></svg></div></div>
+    <div class="wrap" aria-hidden="true"><div class="truss-c" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 22 22" aria-hidden="true"><path d="M6 2.5h10L21 11l-5 8.5H6L1 11z" fill="currentColor" opacity=".25" stroke="currentColor" stroke-width="1.4"/><circle cx="11" cy="11" r="4" fill="none" stroke="currentColor" stroke-width="1.6"/></svg></div></div>
     <section style="padding-top:0">
       <div class="wrap">
         <div class="sec-head"><div><span class="eyebrow">Что мы делаем</span><h2 style="margin-top:6px">От задачи до готового комплекса</h2></div></div>
@@ -508,7 +540,7 @@ footer small{opacity:.7}
     </section>
 
 
-    <div class="wrap" aria-hidden="true"><div class="truss-c" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 22 22" aria-hidden="true"><g stroke="currentColor" stroke-width="1.6" stroke-linecap="round" fill="none"><path d="M11 1v20M2.3 6l17.4 10M2.3 16L19.7 6"/><path d="M8 3l3 2.5L14 3M8 19l3-2.5 3 2.5M3 9.5l3.5-.6L5.3 5.5M16.7 16.5l-1.2-3.4 3.5.6M3 12.5l3.5.6-1.2 3.4M16.7 5.5l-1.2 3.4 3.5-.6"/></g></svg></div></div>
+    <div class="wrap" aria-hidden="true"><div class="truss-c" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 22 22" aria-hidden="true"><path d="M6 2.5h10L21 11l-5 8.5H6L1 11z" fill="currentColor" opacity=".25" stroke="currentColor" stroke-width="1.4"/><circle cx="11" cy="11" r="4" fill="none" stroke="currentColor" stroke-width="1.6"/></svg></div></div>
     <section style="padding-top:0">
       <div class="wrap">
         <div class="sec-head"><h2>Кому подходят наши комплексы</h2></div>
