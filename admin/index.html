@@ -307,6 +307,7 @@ function changedParts(){
   if(!eq(b.home,d.home)) out.push("фото на главной");
   if(!eq(b.products,d.products)) out.push("каталог");
   if(!eq(b.news||[],d.news)) out.push("новости");
+  if(!eq(b.settings||{},d.settings||{})) out.push("настройки");
   return out;
 }
 function refs(data){const s=new Set(); (function w(o){ if(Array.isArray(o)) o.forEach(w); else if(o&&typeof o==="object") Object.values(o).forEach(w); else if(typeof o==="string"&&/^(photos|images)\//.test(o)) s.add(o);})(data); return s;}
@@ -530,8 +531,10 @@ function productHTML(p,pi){
 function newsHTML(){
   const N=S.data.news; const order=N.map((n,i)=>[n,i]).sort((a,b)=>(b[0].date||"").localeCompare(a[0].date||""));
   const cur=N.findIndex(n=>n.id===S.sel);
+  const vis=!(S.data.settings&&S.data.settings.newsVisible===false);
   return `<div class="head"><div><h2>Новости</h2><p>Новости показываются от новых к старым. Три последние также появляются на главной.</p></div>
     <button class="btn pri" data-act="newsAdd">+ Добавить новость</button></div>
+    <label class="note" style="display:flex;gap:8px;align-items:center;margin-bottom:14px;cursor:pointer"><input type="checkbox" data-act="newsVis" ${vis?"checked":""}> <span><b>Показывать раздел «Новости» на сайте.</b> ${vis?"Раздел виден посетителям.":"Сейчас раздел скрыт: новости можно готовить заранее, посетители их не увидят."}</span></label>
     <div class="split"><div class="list">${order.map(([n,i])=>`<div class="li ${n.id===S.sel?"on":""}" data-act="sel" data-id="${esc(n.id)}" role="button" tabindex="0">
       ${n.photos&&n.photos[0]?`<img src="${esc(img(n.photos[0]))}" alt="">`:""}<span class="tx"><b>${esc(n.title||"Без заголовка")}</b><small>${esc(fmtDate(n.date))}</small></span></div>`).join("")||`<div class="empty">Новостей пока нет</div>`}</div>
     <div>${cur>=0?newsEditHTML(N[cur],cur):N.length?`<div class="empty">Выберите новость слева</div>`:""}</div></div>`;
@@ -615,7 +618,7 @@ document.addEventListener("click",async e=>{
   const el=e.target.closest("[data-act]"); if(!el||!S.data&&el.dataset.act!=="logout") return;
   const a=el.dataset.act, i=+el.dataset.i;
   if(a==="access"){ e.preventDefault(); accessModal(); return; }
-  if(a!=="defv"&&a!=="nToAlbum") e.preventDefault();
+  if(a!=="defv"&&a!=="nToAlbum"&&a!=="newsVis") e.preventDefault();
   if(a==="view"){ S.view=el.dataset.v; S.sel=S.view==="catalog"?(S.data.products[0]?.id||null):S.view==="news"?(S.data.news.slice().sort((x,y)=>(y.date||"").localeCompare(x.date||""))[0]?.id||null):null; render(); return; }
   if(a==="logout"){ if(dirty()&&!confirm("Есть неопубликованные изменения. Выйти и потерять их?")) return; logout(); return; }
   if(a==="publish") return publish();
@@ -654,6 +657,7 @@ document.addEventListener("click",async e=>{
   if(a==="nPhotoPick"){ const n=curNews(); const ch=await pickFromAlbum("Фото к новости",0,n.photos); n.photos.push(...ch); rerender(); return; }
   if(a==="nPhotoUp"){ const n=curNews(); const ps=await uploadMany("photos"); n.photos.push(...ps); if(n.toAlbum) ps.forEach(x=>S.data.album.push({src:x,caption:n.title||""})); rerender(); return; }
   if(a==="nPhotoDel"){ curNews().photos.splice(i,1); rerender(); return; }
+  if(a==="newsVis"){ S.data.settings=S.data.settings||{}; if(el.checked) delete S.data.settings.newsVisible; else S.data.settings.newsVisible=false; if(!Object.keys(S.data.settings).length) delete S.data.settings; rerender(); return; }
   if(a==="nToAlbum"){ const n=curNews(); if(el.checked) n.toAlbum=true; else delete n.toAlbum; touch(); return; }
 });
 

@@ -1081,5 +1081,8 @@
   "photos/p28.jpg",
   "photos/p22.jpg",
   "photos/p6.jpg"
- ]
+ ],
+ "settings": {
+  "newsVisible": false
+ }
 }

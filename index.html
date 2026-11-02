@@ -636,6 +636,8 @@ const PRODUCTS=(SITE.products||[]).filter(p=>p.variants&&p.variants.length).map(
   def:Math.min(+p.defaultVariant||0,p.variants.length-1), desc:p.desc||"", stages:p.stages||[],
   images:(p.schemes||[]).map(x=>[x.title,x.src]), photos:p.photos||[],
   variants:p.variants.map(v=>Object.assign({},v,{L:+v.L,W:+v.W,n:+v.n,use:Array.isArray(v.use)?v.use:(PURPOSES[v.use]||[])}))}));
+const NEWS_ON=!(SITE.settings&&SITE.settings.newsVisible===false);
+if(!NEWS_ON){ const a=document.querySelector('nav.menu a[data-route="news"]'); if(a) a.remove(); }
 const NEWS=(SITE.news||[]).slice().sort((a,b)=>(b.date||"").localeCompare(a.date||""));
 const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const fmtN = x => String(x).replace(".",",");
@@ -675,7 +677,7 @@ function newsHTML(n,short){
 }
 document.getElementById("newsList").innerHTML=NEWS.length?NEWS.map(n=>newsHTML(n)).join(""):`<div class="empty">Скоро здесь появятся новости.</div>`;
 document.getElementById("newsList").addEventListener("click",e=>{const b=e.target.closest("[data-nid]"); if(b){const n=NEWS.find(x=>x.id===b.dataset.nid); lbShow(+b.dataset.lb,n.photos);}});
-if(NEWS.length){ document.getElementById("homeNewsSec").hidden=false; document.getElementById("homeNews").innerHTML=NEWS.slice(0,3).map(n=>newsHTML(n,true)).join("");
+if(NEWS_ON&&NEWS.length){ document.getElementById("homeNewsSec").hidden=false; document.getElementById("homeNews").innerHTML=NEWS.slice(0,3).map(n=>newsHTML(n,true)).join("");
   document.getElementById("homeNews").addEventListener("click",e=>{const a=e.target.closest(".news-item"); if(a){location.hash="#news"; setTimeout(()=>{const t=document.getElementById(a.id); if(t) t.scrollIntoView({behavior:"smooth"});},50);}}); }
 document.getElementById("photoAlbum").addEventListener("click",e=>{const b=e.target.closest("[data-lb]"); if(b) lbShow(+b.dataset.lb,ALBUM);});
 lb.addEventListener("click",e=>{ if(e.target.closest(".lbp")) lbShow(lbi-1); else if(e.target.closest(".lbnx")) lbShow(lbi+1); else if(e.target.closest(".lbx")||e.target===lb) lbClose(); });
@@ -1100,7 +1102,7 @@ function show(v){
 function route(){
   let h=location.hash.slice(1);
   if(h==="request"){show("home"); document.getElementById("request").scrollIntoView({behavior:"smooth"}); return;}
-  if(!["home","catalog","photos","news","about"].includes(h)) h="home";
+  if(!["home","catalog","photos","about"].concat(NEWS_ON?["news"]:[]).includes(h)) h="home";
   show(h); window.scrollTo(0,0);
 }
 
