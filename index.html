@@ -1013,7 +1013,8 @@ function mount3D(box,cfg){
     if(sp.autoBraces) sp.posts.forEach(([x,z,lv])=>{   // укосины по тому же правилу, что у остальных моделей
       const i=xs.indexOf(x), lev=[...lv].sort((p,q)=>p-q), th=lev[0], inw=i===0?1:(i===xs.length-1?-1:0);
       const low=sg=>strut([x+sg*C,th-C-1.1],[x+sg*1.25,th-C],z);
-      if(inw) low(inw); else [-1,1].forEach(sg=>{ low(sg); const up=lev[lev.length-2]; strut([x+sg*2.0,up+C],[x+sg*C,up+C+1.85],z); });
+      const onlyTop=sp.autoBraces==="top";
+      if(inw){ if(!onlyTop) low(inw); } else [-1,1].forEach(sg=>{ if(!onlyTop) low(sg); const up=lev[lev.length-2]; strut([x+sg*2.0,up+C],[x+sg*C,up+C+1.85],z); });
     });
   } else {
     const FX=[0,XM,L], PX=[-PO,XM+PO,L+PO];
@@ -1025,8 +1026,10 @@ function mount3D(box,cfg){
       /* раскосы по виду сбоку: у крайних стоек — под фермой внутрь пролёта, у средних — верхние и нижние в обе стороны */
       const inward=i===0?1:(i===2?-1:0), th=lowAt(z)?LOW:H1;
       const low=(sg)=>strut([x+sg*C,th-C-1.1],[x+sg*1.25,th-C],z);
-      if(i!==1) low(inward);
-      else [-1,1].forEach(sg=>{ low(sg); strut([x+sg*2.0,H1+C],[x+sg*C,H1+C+1.85],z); });
+      /* ТСК 2: укосины только от верхнего яруса к средней стойке — по паре с каждой стороны */
+      const onlyTop=cfg.type===2;
+      if(i!==1){ if(!onlyTop) low(inward); }
+      else [-1,1].forEach(sg=>{ if(!onlyTop) low(sg); strut([x+sg*2.0,H1+C],[x+sg*C,H1+C+1.85],z); });
     }));
     zs.forEach(z=>{ st.longit.push([z,H1,FX]); if(lowAt(z)) st.longit.push([z,LOW,FX]); });
     st.cross.push([0,H1,zs],[XM,H2,zs],[L,H1,zs]);

@@ -1369,7 +1369,7 @@
                 0.03
               ]
             ],
-            "autoBraces": true
+            "autoBraces": "top"
           },
           "modelL": 30.7
         }
