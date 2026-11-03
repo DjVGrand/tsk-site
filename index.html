@@ -989,29 +989,39 @@ function mount3D(box,cfg){
     });
     st.ropes.forEach(r=>segs.rope.push([V(r[0],r[1],r[2]),V(r[3],r[4],r[5])]));
   }
-  function legs(x,z,fi,nf,ha,bm){   // опорные ноги: две в плане под 45° наружу, со стяжкой по грунту
-    const inward=fi===0?1:(fi===nf-1?-1:0);
-    const lg = inward===0 ? [-bm,bm] : [-inward*bm*1.25,inward*bm*0.75];
-    const out=z<-1e-6?-1:(z>1e-6?1:0), feet=lg.map(dx=>V(x+dx,0,z+out*Math.abs(dx)));
-    feet.forEach(f=>segs.brace.push([V(x,ha,z),f])); segs.brace.push([feet[0],feet[1]]);
+  /* Ноги по чертежу ТСК 1 12/30: только у стоек крайних линий, по две на стойку, в плане под 45° наружу.
+     Каждая — стальной квадратный профиль: стяжка по грунту 50×50 от основания стойки (вылет ≈1 м),
+     подкос 40×40 от хомута на поясе стойки (1,07 м) до конца стяжки, хомут на поясе. */
+  function legs(x,z,edge){
+    if(Math.abs(Math.abs(z)-edge)>1e-3) return;
+    const o=Math.sign(z)||1;
+    [-1,1].forEach(sx=>{
+      beams.push([V(x+sx*0.15,0.025,z+o*0.14),V(x+sx*1.0,0.025,z+o*0.99),0.05]);
+      beams.push([V(x+sx*0.19,1.064,z+o*0.19),V(x+sx*0.935,0.05,z+o*0.935),0.04]);
+      beams.push([V(x+sx*0.10,1.07,z+o*0.17),V(x+sx*0.24,1.07,z+o*0.17),0.03]);
+    });
   }
+  /* Укосины по чертежу: парные — по обеим граням стойки (пояса на ±0,15 м), под 45°.
+     Нижняя: от стойки вверх к нижнему поясу продольной фермы; верхняя (на средних стойках): от верхнего пояса фермы вверх к стойке. */
+  function strut(a,b,z){ [-0.15,0.15].forEach(dz=>segs.brace.push([V(a[0],a[1],z+dz),V(b[0],b[1],z+dz)])); }
   if(cfg.spec){
     const sp=cfg.spec, xs=[...new Set(sp.posts.map(p=>p[0]))].sort((a,b)=>a-b);
     build(sp);
     (sp.braces||[]).forEach(b=>segs.brace.push([V(b[0],b[1],b[2]),V(b[3],b[4],b[5])]));
     if(sp.legs) sp.legs.forEach(b=>beams.push([V(b[0],b[1],b[2]),V(b[3],b[4],b[5]),b[6]||0.04]));
-    else sp.posts.forEach(([x,z])=>legs(x,z,xs.indexOf(x),xs.length,1.4,1.1));
+    else { const edge=Math.max(...sp.posts.map(q=>Math.abs(q[1]))); sp.posts.forEach(([x,z])=>legs(x,z,edge)); }
   } else {
     const FX=[0,XM,L], PX=[-PO,XM+PO,L+PO];
     const st={posts:[],longit:[],cross:[],pipes:[],ropes:[]};
     FX.forEach((x,i)=>zs.forEach(z=>{
       const lv=[H1]; if(lowAt(z)) lv.push(LOW); if(i===1) lv.push(H2);
       st.posts.push([x,z,lv]);
-      legs(x,z,i,3,0.46*H1,0.42*H1);
+      legs(x,z,W/2);
       /* раскосы по виду сбоку: у крайних стоек — под фермой внутрь пролёта, у средних — верхние и нижние в обе стороны */
       const inward=i===0?1:(i===2?-1:0), th=lowAt(z)?LOW:H1;
-      if(i!==1) segs.brace.push([V(x,0.49*th,z),V(x+inward*(0.53*th+C),th-C,z)]);
-      else [-1,1].forEach(sg=>{ segs.brace.push([V(x,0.8*H2,z),V(x+sg*(0.82*H1+C),H1+C,z)]); segs.brace.push([V(x+sg*(0.53*th+C),th-C,z),V(x,0.47*th,z)]); });
+      const low=(sg)=>strut([x+sg*C,th-C-1.1],[x+sg*1.25,th-C],z);
+      if(i!==1) low(inward);
+      else [-1,1].forEach(sg=>{ low(sg); strut([x+sg*2.0,H1+C],[x+sg*C,H1+C+1.85],z); });
     }));
     zs.forEach(z=>{ st.longit.push([z,H1,FX]); if(lowAt(z)) st.longit.push([z,LOW,FX]); });
     st.cross.push([0,H1,zs],[XM,H2,zs],[L,H1,zs]);
