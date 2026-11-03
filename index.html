@@ -1010,6 +1010,11 @@ function mount3D(box,cfg){
     (sp.braces||[]).forEach(b=>segs.brace.push([V(b[0],b[1],b[2]),V(b[3],b[4],b[5])]));
     if(sp.legs) sp.legs.forEach(b=>beams.push([V(b[0],b[1],b[2]),V(b[3],b[4],b[5]),b[6]||0.04]));
     else { const edge=Math.max(...sp.posts.map(q=>Math.abs(q[1]))); sp.posts.forEach(([x,z])=>legs(x,z,edge)); }
+    if(sp.autoBraces) sp.posts.forEach(([x,z,lv])=>{   // укосины по тому же правилу, что у остальных моделей
+      const i=xs.indexOf(x), lev=[...lv].sort((p,q)=>p-q), th=lev[0], inw=i===0?1:(i===xs.length-1?-1:0);
+      const low=sg=>strut([x+sg*C,th-C-1.1],[x+sg*1.25,th-C],z);
+      if(inw) low(inw); else [-1,1].forEach(sg=>{ low(sg); const up=lev[lev.length-2]; strut([x+sg*2.0,up+C],[x+sg*C,up+C+1.85],z); });
+    });
   } else {
     const FX=[0,XM,L], PX=[-PO,XM+PO,L+PO];
     const st={posts:[],longit:[],cross:[],pipes:[],ropes:[]};
