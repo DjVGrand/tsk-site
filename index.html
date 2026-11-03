@@ -898,10 +898,22 @@ const TF=(()=>{
     return m; }
   /* Раскладка пролёта на модули ферм (до 3000 мм, без коротких остатков) */
   function split(mm){ const out=[]; let r=mm; while(r>3500){ out.push(3000); r-=3000; } if(r>3000){ const h=Math.round(r/2); out.push(h,r-h); } else out.push(r); return out; }
-  return {truss,cube,split};
+  /* Каретка (элеваторная система) по чертежу: обойма вокруг стойки 350×350 — 4 вертикальные трубы Ø50 высотой 570 по углам (оси ±250),
+     обвязка Ø50 по 4 сторонам на ±260 по высоте и накладные плиты 500×180×10 снаружи каждой стороны на ±170. Единицы — мм. */
+  function box(m,c,s){ const h=s.map(v=>v/2);
+    const P=(a,b,d)=>[c[0]+a*h[0],c[1]+b*h[1],c[2]+d*h[2]];
+    quadO(m,P(1,-1,-1),P(1,1,-1),P(1,1,1),P(1,-1,1),[1,0,0]); quadO(m,P(-1,-1,-1),P(-1,1,-1),P(-1,1,1),P(-1,-1,1),[-1,0,0]);
+    quadO(m,P(-1,1,-1),P(1,1,-1),P(1,1,1),P(-1,1,1),[0,1,0]); quadO(m,P(-1,-1,-1),P(1,-1,-1),P(1,-1,1),P(-1,-1,1),[0,-1,0]);
+    quadO(m,P(-1,-1,1),P(1,-1,1),P(1,1,1),P(-1,1,1),[0,0,1]); quadO(m,P(-1,-1,-1),P(1,-1,-1),P(1,1,-1),P(-1,1,-1),[0,0,-1]); }
+  function carriage(){ const m=mesh(), R=25, A=250, Z=[0,0,1];   // z — вертикаль (ось стойки)
+    for(const sx of [-1,1]) for(const sy of [-1,1]) tube(m,[sx*A,sy*A,-285],[sx*A,sy*A,285],R,R-3,null,null,NC);
+    for(const hz of [-260,260]) for(const s of [-1,1]){
+      tube(m,[-A,s*A,hz],[A,s*A,hz],R,R-3,[Z,R],[Z,R],NC); tube(m,[s*A,-A,hz],[s*A,A,hz],R,R-3,[Z,R],[Z,R],NC); }
+    for(const pz of [-170,170]) for(const s of [-1,1]){ box(m,[0,s*280,pz],[500,10,180]); box(m,[s*280,0,pz],[10,500,180]); }
+    return m; }
+  return {truss,cube,split,carriage};
 })();
 let viewer=null;
-/* cfg: type 1|2, L — длина, W — ширина, n — ниток. Длина и ширина из паспорта; высоты рам — по схеме, ориентировочно */
 function mount3D(box,cfg){
   const T=THREE, css=getComputedStyle(document.documentElement);
   const col=n=>new T.Color(css.getPropertyValue(n).trim()||"#888");
@@ -928,11 +940,11 @@ function mount3D(box,cfg){
   box.appendChild(ren.domElement);
   scene.add(new T.HemisphereLight(0xffffff,0x888888,0.85));
   const dl=new T.DirectionalLight(0xffffff,0.7); dl.position.set(-10,30,20); scene.add(dl);
-  const segs={chord:[],lace:[],brace:[],bar:[],rope:[],flange:[],bolt:[],strap:[]};
-  const boxes={cube:[],plate:[],base:[],buckle:[]}, rings=[];
+  const beams=[], segs={leg:[],chord:[],lace:[],brace:[],bar:[],rope:[],flange:[],bolt:[],strap:[]};
+  const boxes={cap:[],cube:[],plate:[],base:[],buckle:[]}, rings=[];
   const V=(x,y,z)=>new T.Vector3(x,y,z);
   /* Фермы и узлы — по навыку tube-frame-3d-models: модули ферм 350×350 до 3 м и соединительные кубы 370×350×370 */
-  const tfMods={}, tfCubes=[];
+  const tfMods={}, tfCubes=[], tfCars=[];
   function truss(a,b){
     const d=b.clone().sub(a), len=d.length(); if(len<0.2) return; d.normalize();
     const up=Math.abs(d.y)>0.9?V(1,0,0):V(0,1,0), zA=up.clone().sub(d.clone().multiplyScalar(up.dot(d))).normalize(), yA=new T.Vector3().crossVectors(zA,d);
@@ -943,13 +955,23 @@ function mount3D(box,cfg){
   const C=TS/2;
   /* Сборка по описанию: стойки с узловыми кубами, отрезки ферм между кубами, опоры с кронштейнами, перила */
   function build(st){
-    st.posts.forEach(([x,z,lv])=>{
+    /* Узел на стойке: куб (ствол стойки прерывается) или каретка (обойма скользит по сплошному стволу — элеваторная система).
+       carriage:true — каретки во всех узлах; carTop:true — каретка только в верхнем узле стойки, ниже кубы. */
+    const isCar=new Set(), key=(x,y,z)=>[x,y,z].map(v=>Math.round(v*100)).join();
+    st.posts.forEach(([x,z,lv,top,bcube])=>{
       const lev=[...lv].sort((a,b)=>a-b); let y0=0.012;
-      boxes.base.push([V(x,0.006,z),V(0.42,0.012,0.42)]);
-      lev.forEach(y=>{ truss(V(x,y0,z),V(x,y-0.175,z)); tfCubes.push(V(x,y,z)); y0=y+0.175; });
+      if(bcube===undefined) boxes.base.push([V(x,0.006,z),V(0.42,0.012,0.42)]);
+      else { boxes.base.push([V(x,0.025,z),V(0.35,0.05,0.35)]); y0=0.05; }
+      if(bcube){ tfCubes.push(V(x,0.05+0.185,z)); y0=0.05+0.37; }
+      lev.forEach((y,i)=>{
+        const car=st.carriage||(st.carTop&&i===lev.length-1&&lev.length>2);
+        if(car){ tfCars.push(V(x,y,z)); isCar.add(key(x,y,z)); }
+        else { truss(V(x,y0,z),V(x,y-0.175,z)); tfCubes.push(V(x,y,z)); y0=y+0.175; } });
+      if(top&&top>y0+0.2){ truss(V(x,y0,z),V(x,top,z)); boxes.cap.push([V(x,top+0.05,z),V(0.3,0.1,0.4)]); }
     });
-    st.longit.forEach(([z,y,px])=>{ for(let i=0;i<px.length-1;i++) truss(V(px[i]+0.185,y,z),V(px[i+1]-0.185,y,z)); });
-    st.cross.forEach(([x,y,pz])=>{ for(let i=0;i<pz.length-1;i++) truss(V(x,y,pz[i]+0.185),V(x,y,pz[i+1]-0.185)); });
+    const OFF=(x,y,z)=>isCar.has(key(x,y,z))?0.285:0.185;
+    st.longit.forEach(([z,y,px])=>{ for(let i=0;i<px.length-1;i++) truss(V(px[i]+OFF(px[i],y,z),y,z),V(px[i+1]-OFF(px[i+1],y,z),y,z)); });
+    st.cross.forEach(([x,y,pz])=>{ for(let i=0;i<pz.length-1;i++) truss(V(x,y,pz[i]+OFF(x,y,pz[i])),V(x,y,pz[i+1]-OFF(x,y,pz[i+1]))); });
     st.pipes.forEach(([x,y,z0,z1,pxx,pzs])=>{
       segs.bar.push([V(x,y,z0),V(x,y,z1)]);
       [z0,z1].forEach(zz=>segs.flange.push([V(x,y,zz-0.01),V(x,y,zz+0.01)]));
@@ -976,7 +998,9 @@ function mount3D(box,cfg){
   if(cfg.spec){
     const sp=cfg.spec, xs=[...new Set(sp.posts.map(p=>p[0]))].sort((a,b)=>a-b);
     build(sp);
-    sp.posts.forEach(([x,z])=>legs(x,z,xs.indexOf(x),xs.length,1.4,1.1));
+    (sp.braces||[]).forEach(b=>segs.brace.push([V(b[0],b[1],b[2]),V(b[3],b[4],b[5])]));
+    if(sp.legs) sp.legs.forEach(b=>beams.push([V(b[0],b[1],b[2]),V(b[3],b[4],b[5]),b[6]||0.04]));
+    else sp.posts.forEach(([x,z])=>legs(x,z,xs.indexOf(x),xs.length,1.4,1.1));
   } else {
     const FX=[0,XM,L], PX=[-PO,XM+PO,L+PO];
     const st={posts:[],longit:[],cross:[],pipes:[],ropes:[]};
@@ -1020,6 +1044,14 @@ function mount3D(box,cfg){
     m.count=list.length; const M=new T.Matrix4(),q=new T.Quaternion();
     list.forEach(([p,s],i)=>{ M.compose(p,q,s); m.setMatrixAt(i,M); }); scene.add(m); return m;
   }
+  /* Квадратный профиль вдоль отрезка: грань профиля держим вертикально */
+  function instBeam(list,color){
+    const m=new T.InstancedMesh(ubox,new T.MeshStandardMaterial({color,roughness:0.5,metalness:0.6}),Math.max(list.length,1));
+    m.count=list.length; const M=new T.Matrix4();
+    list.forEach(([a,b,w],i)=>{ const d=b.clone().sub(a), len=d.length(); d.normalize();
+      let s=new T.Vector3().crossVectors(d,V(0,1,0)); if(s.length()<1e-6) s=V(1,0,0); s.normalize(); const n=new T.Vector3().crossVectors(s,d);
+      M.makeBasis(s.multiplyScalar(w),d.multiplyScalar(len),n.multiplyScalar(w)).setPosition(a.clone().add(b).multiplyScalar(0.5)); m.setMatrixAt(i,M); });
+    scene.add(m); return m; }
   function instRing(list,color){
     const m=new T.InstancedMesh(uring,new T.MeshStandardMaterial({color,roughness:0.5,metalness:0.6}),Math.max(list.length,1));
     m.count=list.length; const M=new T.Matrix4(),q=new T.Quaternion(),one=new T.Vector3(1,1,1);
@@ -1029,9 +1061,10 @@ function mount3D(box,cfg){
   const aluMat=new T.MeshStandardMaterial({color:"#c9ced3",metalness:0.75,roughness:0.33});
   function instGeom(g,mats){ const m=new T.InstancedMesh(g,aluMat,mats.length); mats.forEach((M,i)=>m.setMatrixAt(i,M)); scene.add(m); return m; }
   const tfMeshes=Object.keys(tfMods).map(k=>instGeom(tfGeom(TF.truss(+k)),tfMods[k]));
+  if(tfCars.length){ const R=new T.Matrix4().makeRotationX(-Math.PI/2); tfMeshes.push(instGeom(tfGeom(TF.carriage()),tfCars.map(p=>new T.Matrix4().makeTranslation(p.x,p.y,p.z).multiply(R).multiply(new T.Matrix4().makeScale(0.001,0.001,0.001))))); }
   if(tfCubes.length) tfMeshes.push(instGeom(tfGeom(TF.cube()),tfCubes.map(p=>new T.Matrix4().makeScale(0.001,0.001,0.001).setPosition(p))));
   const alu=new T.Color("#b8c0c6"), node=new T.Color("#8d969c"), steelC=new T.Color("#5d6469"), pipeC=new T.Color("#c23a2c"), rope=col("--cord")||new T.Color("#c8452f");
-  const parts={ frame:[...tfMeshes,inst(segs.brace,0.026,steelC),instBox(boxes.base,steelC)],
+  const parts={ frame:[...tfMeshes,inst(segs.brace,cfg.spec&&cfg.spec.braceR||0.026,steelC),instBeam(beams,steelC),instBox(boxes.base,steelC),instBox(boxes.cap,steelC)],
     bars:[inst(segs.bar,0.0795,pipeC,0.55,0.3),inst(segs.flange,0.129,steelC),inst(segs.strap,0.009,new T.Color("#1b1d1f"),0.9,0),instBox(boxes.buckle,steelC,0.4,0.8)],
     ropes:[inst(segs.rope,0.014,rope,0.8,0)] };
 
