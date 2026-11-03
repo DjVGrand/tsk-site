@@ -31,6 +31,6 @@ let w = tpl.replace(/\/\*ENG-START\*\/[\s\S]*?\/\*ENG-END\*\//, "")
 fs.mkdirSync(path.join(OUT, "winter"), { recursive: true });
 fs.writeFileSync(path.join(OUT, "winter", "index.html"), w);
 
-for (const d of ["photos", "images", "content", "admin", "eng"]) if (fs.existsSync(d)) fs.cpSync(d, path.join(OUT, d), { recursive: true });
+for (const d of ["photos", "images", "content", "admin", "eng", "brand"]) if (fs.existsSync(d)) fs.cpSync(d, path.join(OUT, d), { recursive: true });
 if (fs.existsSync("CNAME")) fs.copyFileSync("CNAME", path.join(OUT, "CNAME"));
 console.log("Готово:", site.products.length, "конструкций,", site.album.length, "фото в альбоме,", (site.news || []).length, "новостей");
