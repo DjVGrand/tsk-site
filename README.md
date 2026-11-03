@@ -8,3 +8,5 @@
 - `admin/` — панель управления (https://tsk-st.ru/admin/), см. `ИНСТРУКЦИЯ.md`.
 - `scripts/build.mjs` — сборка: подстановка данных, зимний вариант `/winter/`, проверка картинок.
 - `.github/workflows/pages.yml` — публикация на GitHub Pages; шрифты и three.js скачиваются в `vendor/`, без зарубежных CDN.
+- `brand/` — логотип в векторе (SVG, текст в кривых) и PNG, фавиконы; собирается workflow `.github/workflows/brand.yml` из `scripts/brand.mjs`.
+- При сборке добавляются SEO-теги, данные организации (schema.org), `robots.txt` и `sitemap.xml`; настройки — вкладка «SEO» в панели (`seo` в `content/site.json`).

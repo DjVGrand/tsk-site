@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow">
 <title>ТСК — управление сайтом</title>
+<link rel="icon" href="../favicon.ico" sizes="any">
+<link rel="icon" href="../favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="../vendor/fonts/golos-text/400.css">
 <link rel="stylesheet" href="../vendor/fonts/golos-text/600.css">
 <link rel="stylesheet" href="../vendor/fonts/russo-one/400.css">
@@ -227,7 +229,7 @@ async function reload(){
   if(!S.defaults) await loadDefaults();
   const b=await loadRemote();
   S.base=b; S.baseStr=JSON.stringify(b.data); S.data=clone(b.data);
-  S.data.album=S.data.album||[]; S.data.home=S.data.home||[]; S.data.products=S.data.products||[]; S.data.news=S.data.news||[]; S.data.texts=S.data.texts||{}; S.data.company=S.data.company||{}; S.data.company.buttons=S.data.company.buttons||{}; S.data.baseSpecs=S.data.baseSpecs||[];
+  S.data.album=S.data.album||[]; S.data.home=S.data.home||[]; S.data.products=S.data.products||[]; S.data.news=S.data.news||[]; S.data.texts=S.data.texts||{}; S.data.company=S.data.company||{}; S.data.company.buttons=S.data.company.buttons||{}; S.data.baseSpecs=S.data.baseSpecs||[]; S.data.seo=Object.assign({},SEO_DEF,S.data.seo||{});
   S.baseStr=JSON.stringify(S.data);
   S.uploads.clear();
   if(S.view==="catalog"&&!S.data.products.find(p=>p.id===S.sel)) S.sel=S.data.products[0]?.id||null;
@@ -326,10 +328,11 @@ function changedParts(){
   if(!eq(b.texts||{},d.texts||{})) out.push("тексты");
   if(!eq(b.company||{},d.company||{})) out.push("о компании");
   if(!eq(b.baseSpecs||[],d.baseSpecs||[])) out.push("характеристики");
+  if(!eq(b.seo||{},d.seo||{})) out.push("SEO");
   return out;
 }
 function refs(data){const s=new Set(); (function w(o){ if(Array.isArray(o)) o.forEach(w); else if(o&&typeof o==="object") Object.values(o).forEach(w); else if(typeof o==="string"&&/^(photos|images)\//.test(o)) s.add(o);})(data); return s;}
-function touch(){ if(S.data){ const c={album:S.data.album.length,home:S.data.home.length,catalog:S.data.products.length,news:S.data.news.length,texts:"",company:""}; document.querySelectorAll(".tab[data-v]").forEach(t=>{const n=t.querySelector(".cnt"); if(n) n.textContent=c[t.dataset.v];}); }
+function touch(){ if(S.data){ const c={album:S.data.album.length,home:S.data.home.length,catalog:S.data.products.length,news:S.data.news.length,texts:"",company:"",seo:""}; document.querySelectorAll(".tab[data-v]").forEach(t=>{const n=t.querySelector(".cnt"); if(n) n.textContent=c[t.dataset.v];}); }
   const pb=$("#pubBtn"); if(pb){const parts=changedParts(); pb.disabled=!parts.length||S.busy; pb.textContent=parts.length?`Опубликовать (${parts.join(", ")})`:"Изменений нет"; const rb=$("#revBtn"); if(rb) rb.hidden=!parts.length;} }
 
 /* ===== Фото: сжатие и загрузка ===== */
@@ -419,8 +422,8 @@ function validate(){
 function render(){
   const app=$("#app");
   if(!S.token||!S.data){ app.innerHTML=loginHTML(); return; }
-  const c={album:S.data.album.length,home:S.data.home.length,catalog:S.data.products.length,news:S.data.news.length,texts:"",company:""};
-  const T=[["album","Фотоальбом"],["home","Главная"],["catalog","Каталог"],["news","Новости"],["texts","Тексты"],["company","О компании"]];
+  const c={album:S.data.album.length,home:S.data.home.length,catalog:S.data.products.length,news:S.data.news.length,texts:"",company:"",seo:""};
+  const T=[["album","Фотоальбом"],["home","Главная"],["catalog","Каталог"],["news","Новости"],["texts","Тексты"],["company","О компании"],["seo","SEO"]];
   app.innerHTML=`<header class="top"><div class="wrap">
       <a class="brand" href="${SITE_URL}" target="_blank" rel="noopener"><b>ТСК</b><span>управление сайтом</span></a>
       <nav class="tabs" role="tablist">${T.map(([k,t])=>`<button class="tab" role="tab" data-act="view" data-v="${k}" aria-selected="${S.view===k}">${t}<span class="cnt">${c[k]}</span></button>`).join("")}</nav>
@@ -485,6 +488,7 @@ function viewHTML(){
   if(S.view==="catalog") return catalogHTML();
   if(S.view==="texts") return textsHTML();
   if(S.view==="company") return companyHTML();
+  if(S.view==="seo") return seoHTML();
   return newsHTML();
 }
 const usedIn=p=>{const out=[]; if(S.data.home.includes(p)) out.push("главная"); S.data.products.forEach(x=>{ if((x.photos||[]).includes(p)||(x.schemes||[]).some(s=>s.src===p)) out.push(x.name); }); S.data.news.forEach(n=>{ if((n.photos||[]).includes(p)) out.push("новость «"+n.title+"»"); }); return out;};
@@ -614,6 +618,35 @@ function companyHTML(){
     ${txtGroup("footer","Подвал")||""}
   </div>`;
 }
+const SEO_DEF={siteUrl:"https://tsk-st.ru/",title:"Туристские спортивные комплексы ТСК — конструкции из алюминиевых ферм",
+  description:"Туристские спортивные комплексы ТСК из алюминиевых ферм для тренировок и соревнований по спортивному туризму. ООО «Современные технологии спорта».",
+  ogImage:"images/hero.jpg",index:true,yandexVerification:"",googleVerification:""};
+function seoHTML(){
+  const o=S.data.seo, b="seo";
+  return `<div class="head"><div><h2>SEO — поисковики и ссылки</h2><p>Как сайт выглядит в результатах Яндекса и Google и в превью ссылки в мессенджерах. Изменения попадают на сайт после «Опубликовать».</p></div></div>
+  <div class="stack">
+    <div class="panel stack"><h3>Заголовок и описание</h3>
+      <label class="f">Заголовок страницы (title) <span class="h" data-cnt="title">${o.title.length} знаков · лучше до 70</span><input class="t" data-bind="${b}.title" value="${esc(o.title)}"></label>
+      <label class="f">Описание (description) <span class="h" data-cnt="description">${o.description.length} знаков · лучше 120–160</span><textarea class="t" data-bind="${b}.description" rows="3">${esc(o.description)}</textarea></label>
+      <div class="note"><span class="small muted">Так примерно будет выглядеть сайт в поиске:</span>
+        <div id="snip" style="margin-top:6px"><div style="color:#1a0dab;font-size:1.05rem" data-snip="t">${esc(o.title)}</div><div style="color:#006621;font-size:.85rem">tsk-st.ru</div><div style="font-size:.88rem" data-snip="d">${esc(o.description)}</div></div></div>
+    </div>
+    <div class="panel stack"><h3>Картинка для превью ссылки</h3>
+      <p class="small muted" style="margin:0">Показывается, когда ссылку на сайт отправляют в мессенджере или соцсети. Лучше горизонтальная, от 1200 × 630.</p>
+      <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">${o.ogImage?`<img src="${esc(img(o.ogImage))}" alt="" style="width:220px;aspect-ratio:1.9;object-fit:cover;border-radius:var(--r);border:1px solid var(--line)">`:""}
+        <button class="btn sm" data-act="ogPick">Выбрать из альбома</button><button class="btn sm" data-act="ogUp">Загрузить</button></div>
+    </div>
+    <div class="panel stack"><h3>Подтверждение сайта в поисковиках</h3>
+      <p class="small muted" style="margin:0">В Яндекс Вебмастере и Google Search Console выберите способ подтверждения «Метатег» / «HTML-тег» и вставьте сюда тег целиком или только код — панель сама возьмёт нужное.</p>
+      <div class="row"><label class="f">Яндекс Вебмастер<input class="t" data-bind="${b}.yandexVerification" data-verif value="${esc(o.yandexVerification)}" placeholder="&lt;meta name=&quot;yandex-verification&quot; content=&quot;…&quot;&gt;"></label>
+        <label class="f">Google Search Console<input class="t" data-bind="${b}.googleVerification" data-verif value="${esc(o.googleVerification)}" placeholder="&lt;meta name=&quot;google-site-verification&quot; content=&quot;…&quot;&gt;"></label></div>
+    </div>
+    <div class="panel stack"><h3>Индексация</h3>
+      <label style="display:flex;gap:8px;align-items:center"><input type="checkbox" data-act="seoIndex" ${o.index!==false?"checked":""}> Разрешить поисковикам индексировать сайт</label>
+      <div class="note">Автоматически при каждой публикации: карта сайта <a href="${SITE_URL}sitemap.xml" target="_blank" rel="noopener">sitemap.xml</a>, файл <a href="${SITE_URL}robots.txt" target="_blank" rel="noopener">robots.txt</a> (панель и зимний вариант закрыты от индексации), данные об организации для поисковиков и тексты страниц прямо в HTML.</div>
+    </div>
+  </div>`;
+}
 const MONTHS=["января","февраля","марта","апреля","мая","июня","июля","августа","сентября","октября","ноября","декабря"];
 const fmtDate=d=>{const m=/^(\d{4})-(\d{2})-(\d{2})/.exec(d||""); return m?`${+m[3]} ${MONTHS[+m[2]-1]} ${m[1]}`:"дата не указана";};
 
@@ -674,9 +707,11 @@ document.addEventListener("input",e=>{
     const box=tk.closest(".tf"); if(box){ const ch=typeof S.data.texts[k]==="string"; box.classList.toggle("ch",ch); const h=box.querySelector(".tf-h"); if(ch&&!h.querySelector("button")) h.insertAdjacentHTML("beforeend",`<button class="btn sm" data-act="txtReset" data-k="${esc(k)}">вернуть</button>`); if(!ch){const bb=h.querySelector("button"); if(bb) bb.remove();} }
     touch(); return; }
   const el=e.target.closest("[data-bind]"); if(!el||!S.data) return;
-  let v=el.value; if(el.hasAttribute("data-lines")) v=v.split("\n").map(s=>s.trim()).filter(Boolean);
+  let v=el.value;
+  if(el.hasAttribute("data-verif")){ const m=/content\s*=\s*["']([^"']+)["']/.exec(v); v=(m?m[1]:v).trim(); } if(el.hasAttribute("data-lines")) v=v.split("\n").map(s=>s.trim()).filter(Boolean);
   else if(el.hasAttribute("data-num")) v=v===""?"":(isNaN(+String(v).replace(",","."))?v:+String(v).replace(",","."));
   setPath(el.dataset.bind,v); touch();
+  if(/^seo\.(title|description)$/.test(el.dataset.bind)){ const k=el.dataset.bind.slice(4), c=document.querySelector(`[data-cnt="${k}"]`); if(c) c.textContent=`${v.length} знаков · ${k==="title"?"лучше до 70":"лучше 120–160"}`; const sn=document.querySelector(`[data-snip="${k[0]}"]`); if(sn) sn.textContent=v; }
   if(/^(products\.\d+\.name|news\.\d+\.(title|date))$/.test(el.dataset.bind)){ const li=document.querySelector(".li.on .tx"); if(li){ const p=getPath(el.dataset.bind.split(".").slice(0,2).join(".")); li.innerHTML=S.view==="news"?`<b>${esc(p.title||"Без заголовка")}</b><small>${esc(fmtDate(p.date))}</small>`:`<b>${esc(p.name||"Без названия")}</b><small>${(p.variants||[]).length} вар. · ${p.model?"3D":"без 3D"}</small>`; } }
 });
 document.addEventListener("change",e=>{ const el=e.target.closest("select[data-bind]"); if(el&&el.dataset.bind.endsWith(".model")) rerender(); });
@@ -685,7 +720,7 @@ document.addEventListener("click",async e=>{
   const el=e.target.closest("[data-act]"); if(!el||!S.data&&el.dataset.act!=="logout") return;
   const a=el.dataset.act, i=+el.dataset.i;
   if(a==="access"){ e.preventDefault(); accessModal(); return; }
-  if(a!=="defv"&&a!=="nToAlbum"&&a!=="newsVis") e.preventDefault();
+  if(a!=="defv"&&a!=="nToAlbum"&&a!=="newsVis"&&a!=="seoIndex") e.preventDefault();
   if(a==="view"){ S.view=el.dataset.v; S.sel=S.view==="catalog"?(S.data.products[0]?.id||null):S.view==="news"?(S.data.news.slice().sort((x,y)=>(y.date||"").localeCompare(x.date||""))[0]?.id||null):null; render(); return; }
   if(a==="logout"){ if(dirty()&&!confirm("Есть неопубликованные изменения. Выйти и потерять их?")) return; logout(); return; }
   if(a==="publish") return publish();
@@ -724,6 +759,9 @@ document.addEventListener("click",async e=>{
   if(a==="nPhotoPick"){ const n=curNews(); const ch=await pickFromAlbum("Фото к новости",0,n.photos); n.photos.push(...ch); rerender(); return; }
   if(a==="nPhotoUp"){ const n=curNews(); const ps=await uploadMany("photos"); n.photos.push(...ps); if(n.toAlbum) ps.forEach(x=>S.data.album.push({src:x,caption:n.title||""})); rerender(); return; }
   if(a==="nPhotoDel"){ curNews().photos.splice(i,1); rerender(); return; }
+  if(a==="seoIndex"){ S.data.seo.index=el.checked; touch(); return; }
+  if(a==="ogPick"){ const ch=await pickFromAlbum("Картинка для превью ссылки",1,[]); if(ch[0]){ S.data.seo.ogImage=ch[0]; rerender(); } return; }
+  if(a==="ogUp"){ const ps=await uploadMany("images",false); if(ps[0]){ S.data.seo.ogImage=ps[0]; rerender(); } return; }
   if(a==="txtReset"){ delete S.data.texts[el.dataset.k]; rerender(); return; }
   if(a==="specAdd"){ S.data.baseSpecs.push(["",""]); rerender(); return; }
   if(a==="specDel"){ S.data.baseSpecs.splice(i,1); rerender(); return; }
