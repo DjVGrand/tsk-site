@@ -1091,7 +1091,7 @@
    "+7 (495) 142-40-03",
    "+7 (919) 779-30-06"
   ],
-  "email": "sovtechsport@yandex.ru",
+  "email": "tsk-st.info@yandex.ru",
   "emailNote": "Заявки и коммерческие предложения",
   "address": "117513, г. Москва, ул. Академика Бакулева, д. 8",
   "postAddress": "117403, а/я 11",
@@ -1099,7 +1099,7 @@
    "phone": "",
    "whatsapp": "",
    "max": "",
-   "email": ""
+   "email": "tsk-st.info@yandex.ru"
   }
  },
  "baseSpecs": [
@@ -1120,8 +1120,5 @@
    "Трубы с фланцами, ГОСТ Р 59380-2021"
   ]
  ],
- "texts": {},
- "seo": {
-  "yandexVerification": "814fd87820321246"
- }
+ "texts": {}
 }
