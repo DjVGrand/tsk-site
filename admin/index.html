@@ -370,7 +370,15 @@ async function publish(force=false){
     let baseTree=S.base.tree;
     if(head!==S.base.sha){
       const remote=await loadRemote();
-      if(remote.str!==S.base.str && JSON.stringify(remote.data)!==S.baseStr && !force){
+      /* Слияние по разделам: то, что вы в этой сессии не меняли, берём из свежей версии сайта —
+         так не пропадают изменения других сотрудников и настройки, добавленные после открытия панели. */
+      const was=JSON.parse(S.baseStr), conflicts=[];
+      for(const k of new Set([...Object.keys(remote.data),...Object.keys(S.data),...Object.keys(was)])){
+        const mine=JSON.stringify(S.data[k]), old=JSON.stringify(was[k]), theirs=JSON.stringify(remote.data[k]);
+        if(mine===old){ if(remote.data[k]===undefined) delete S.data[k]; else S.data[k]=clone(remote.data[k]); }
+        else if(theirs!==old && theirs!==mine) conflicts.push(k);
+      }
+      if(conflicts.length && !force){
         S.busy=false; renderBar("Пока вы работали, сайт изменил другой сотрудник.","err");
         if(confirm("Пока вы работали, содержимое сайта изменил другой сотрудник.\n\nОК — опубликовать вашу версию поверх (его изменения в этих разделах пропадут).\nОтмена — ничего не публиковать; потом нажмите «Обновить», чтобы загрузить свежую версию (ваши неопубликованные изменения пропадут).")) return publish(true);
         return;
@@ -618,11 +626,27 @@ function companyHTML(){
     ${txtGroup("footer","Подвал")||""}
   </div>`;
 }
-const SEO_DEF={siteUrl:"https://tsk-st.ru/",title:"Туристские спортивные комплексы ТСК — конструкции из алюминиевых ферм",
-  description:"Туристские спортивные комплексы ТСК из алюминиевых ферм для тренировок и соревнований по спортивному туризму. ООО «Современные технологии спорта».",
+const SEO_DEF={siteUrl:"https://tsk-st.ru/",title:"Туристские спортивные комплексы ТСК для спортивного туризма",
+  description:"Сборные конструкции из алюминиевых ферм для дистанций по спортивному туризму: навесная переправа, параллельные перила, подъём и спуск. Производство и сборка.",
   ogImage:"images/hero.jpg",index:true,yandexVerification:"",googleVerification:""};
+const SEO_PAGES={
+  catalog:["Каталог","/catalog/","Каталог ТСК — комплексы для дистанций по спортивному туризму","ТСК 1, ТСК 2 и ТСК комби: длина 25–31 м, ширина 6,7–13,5 м, до 18 ниток. Схемы перил, характеристики и 3D-модель каждого варианта."],
+  "tsk-1":["ТСК 1","/catalog/tsk-1/","ТСК 1 — комплекс для навесной переправы, подъёма и спуска","Туристский спортивный комплекс ТСК 1: подъём и спуск по навесной переправе, подъём, спуск, вертикальный маятник. 5 вариантов размеров, до 16 ниток."],
+  "tsk-2":["ТСК 2","/catalog/tsk-2/","ТСК 2 — комплекс для параллельных перил и навесной переправы","Туристский спортивный комплекс ТСК 2 с двумя ярусами ферм: параллельные перила, навесная переправа и все этапы ТСК 1. 5 вариантов размеров, до 16 ниток."],
+  "tsk-kombi":["ТСК комби","/catalog/tsk-kombi/","ТСК комби — две полосы этапов спортивного туризма на одном каркасе","ТСК комби объединяет ТСК 1 и ТСК 2: две полосы на общем каркасе, этапы обоих комплексов ставятся одновременно. Варианты 6/24 и 12/30, до 18 ниток."],
+  photos:["Фотоальбом","/photos/","Фото туристских спортивных комплексов ТСК на соревнованиях","Комплексы ТСК на соревнованиях и тренировках по спортивному туризму летом и зимой: этапы дистанций, сборка комплексов на площадках."],
+  about:["О компании","/about/","О компании «Современные технологии спорта» — производитель ТСК","Московская компания с 2013 года разрабатывает и производит туристские спортивные комплексы ТСК для соревнований и тренировок по спортивному туризму."],
+};
+function seoPagesHTML(){
+  const P=S.data.seo.pages;
+  const keys=Object.keys(SEO_PAGES).concat((S.data.products||[]).map(p=>p.id).filter(id=>!SEO_PAGES[id]));
+  return keys.map(k=>{ const d=SEO_PAGES[k]||[(S.data.products.find(p=>p.id===k)||{}).name||k,`/catalog/${k}/`,"",""]; P[k]=P[k]||{};
+    return `<details class="panel"><summary><b>${esc(d[0])}</b> <span class="small muted">tsk-st.ru${esc(d[1])}</span></summary><div class="stack" style="margin-top:10px">
+      <label class="f">Заголовок (title) <span class="h">пусто — «${esc(d[2]||"по названию комплекса")}»</span><input class="t" data-bind="seo.pages.${k}.title" value="${esc(P[k].title||"")}" placeholder="${esc(d[2])}"></label>
+      <label class="f">Описание (description) <span class="h">лучше 120–160 знаков</span><textarea class="t" data-bind="seo.pages.${k}.description" rows="2" placeholder="${esc(d[3])}">${esc(P[k].description||"")}</textarea></label></div></details>`; }).join("");
+}
 function seoHTML(){
-  const o=S.data.seo, b="seo";
+  const o=S.data.seo, b="seo"; o.pages=o.pages||{};
   return `<div class="head"><div><h2>SEO — поисковики и ссылки</h2><p>Как сайт выглядит в результатах Яндекса и Google и в превью ссылки в мессенджерах. Изменения попадают на сайт после «Опубликовать».</p></div></div>
   <div class="stack">
     <div class="panel stack"><h3>Заголовок и описание</h3>
@@ -631,6 +655,9 @@ function seoHTML(){
       <div class="note"><span class="small muted">Так примерно будет выглядеть сайт в поиске:</span>
         <div id="snip" style="margin-top:6px"><div style="color:#1a0dab;font-size:1.05rem" data-snip="t">${esc(o.title)}</div><div style="color:#006621;font-size:.85rem">tsk-st.ru</div><div style="font-size:.88rem" data-snip="d">${esc(o.description)}</div></div></div>
     </div>
+    <div class="stack"><h3 style="margin:8px 0 0">Остальные страницы</h3>
+      <p class="small muted" style="margin:0">У каждого раздела и каждого комплекса свой адрес в поиске. Пустое поле — используется текст по умолчанию (показан серым).</p>
+      ${seoPagesHTML()}</div>
     <div class="panel stack"><h3>Картинка для превью ссылки</h3>
       <p class="small muted" style="margin:0">Показывается, когда ссылку на сайт отправляют в мессенджере или соцсети. Лучше горизонтальная, от 1200 × 630.</p>
       <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">${o.ogImage?`<img src="${esc(img(o.ogImage))}" alt="" style="width:220px;aspect-ratio:1.9;object-fit:cover;border-radius:var(--r);border:1px solid var(--line)">`:""}

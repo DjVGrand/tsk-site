@@ -365,6 +365,17 @@ footer .logo .mark .mk-z{stroke:currentColor}
 @media (max-width:860px){.pick{grid-template-columns:1fr}}
 @media (max-width:420px){.pr{grid-template-columns:1fr}.pr img{width:100%}}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+/* Страница комплекса (для поисковиков и посетителей из поиска) и ссылки в подвале */
+.prod-intro{padding-top:28px}
+.prod-intro .pi{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:24px;align-items:start}
+@media (max-width:820px){.prod-intro .pi{grid-template-columns:1fr}}
+.prod-intro h2{margin:0 0 10px;font-size:1.15rem}
+.prod-intro ul{margin:0;padding-left:1.2em;display:grid;gap:4px}
+.prod-intro table{width:100%;border-collapse:collapse;font-size:.95rem;font-variant-numeric:tabular-nums}
+.prod-intro th,.prod-intro td{text-align:left;padding:7px 8px;border-bottom:1px solid var(--line)}
+.prod-intro .act{margin-top:16px;display:flex;gap:10px;flex-wrap:wrap}
+.foot-links{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:.88rem}
+.foot-links a{color:inherit;opacity:.85}
 /*ENG-START*/
 /* ===== Инженерный стиль: металл и алюминий ===== */
 :root{ --bg:#E6E8EA; --surface:#F6F7F8; --ink:#1D2227; --muted:#58616A; --line:#C2C8CD; --field:#D3D7DB; --field-ink:#1D2227; --rope:#3C4650; --rope-ink:#FFFFFF; --soft:#DCDFE2; --grid:rgba(29,34,39,.07); --grid2:rgba(29,34,39,.13); --truss:#88929A; --hdr:linear-gradient(180deg,#F7F8F9,#D8DCDF); --deep:#262B31; --deep-ink:#DDE1E5; --snow:transparent; --shadow:rgba(20,25,30,.22); --metal:linear-gradient(180deg,#5B6670,#343C44); --brush:rgba(255,255,255,.35); --rule:#1D2227; --r:3px; }
@@ -548,6 +559,7 @@ footer{background:repeating-linear-gradient(90deg,rgba(255,255,255,.03) 0 1px,tr
         <p data-txt="catalog.3" data-tl="Конструкции ТСК · Текст">Сборные конструкции из алюминиевых ферм для постановки технических этапов на дистанциях по спортивному туризму: «дистанция – пешеходная» и «дистанция – лыжная».</p>
       </div>
     </div>
+    <!--CATALOG-INTRO-->
     <section style="padding-top:32px">
       <div class="wrap">
                 <div class="grid" id="catalogGrid"></div>
@@ -680,6 +692,7 @@ footer{background:repeating-linear-gradient(90deg,rgba(255,255,255,.03) 0 1px,tr
         </g>
         <path class="mk-z" d="M2 11L5 3 8 11 11 3 14 11 17 3 20 11" fill="none" stroke="var(--rope)" stroke-width="1.5" stroke-linejoin="round"/>
       </svg><span class="logo-t">Туристские<br>спортивные комплексы</span></a>
+    <!--FOOT-LINKS-->
     <small data-c="footer">© 2026 ООО «Современные технологии спорта» · +7 (495) 142-40-03 · sovtechsport@yandex.ru</small>
   </div>
 </footer>
@@ -1270,6 +1283,7 @@ function show(v){
 }
 function route(){
   let h=location.hash.slice(1);
+  if(!h&&window.ROUTE) h=window.ROUTE.view;   // отдельные страницы сайта (/catalog/, /about/…) — их раздел
   if(h==="request"||h==="pick"){show("home"); document.getElementById(h).scrollIntoView({behavior:"smooth"}); return;}
   if(!["home","catalog","photos","about"].concat(NEWS_ON?["news"]:[]).includes(h)) h="home";
   show(h); window.scrollTo(0,0);
