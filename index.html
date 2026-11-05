@@ -947,6 +947,8 @@ function mount3D(box,cfg){
   const lanes = combi ? [{z0:-W/2,z1:0,k:1},{z0:0,z1:W/2,k:3}] : [{z0:-W/2,z1:W/2,k:two?2:1}];
   const zs = combi ? [-W/2,0,W/2] : [-W/2,W/2];
   const lowAt = z => lanes.some(l=>l.k>=2&&(Math.abs(z-l.z0)<1e-6||Math.abs(z-l.z1)<1e-6));
+  /* ТСК комби: по дальней линии стоек (полоса «как ТСК 1») — одинарный пояс продольных ферм на нижнем ярусе */
+  const farOnly = z => combi && Math.abs(z+W/2)<1e-6;
   const scene=new T.Scene(); scene.background=col("--soft");
   const cam=new T.PerspectiveCamera(40,1,0.1,1200);
   const ren=new T.WebGLRenderer({antialias:true}); ren.setPixelRatio(Math.min(devicePixelRatio,2));
@@ -1033,21 +1035,23 @@ function mount3D(box,cfg){
     const FX=[0,XM,L], PX=[-PO,XM+PO,L+PO];
     const st={posts:[],longit:[],cross:[],pipes:[],ropes:[]};
     FX.forEach((x,i)=>zs.forEach(z=>{
-      const lv=[H1]; if(lowAt(z)) lv.push(LOW); if(i===1) lv.push(H2);
+      const lv=[H1]; if(lowAt(z)||farOnly(z)) lv.push(LOW); if(i===1) lv.push(H2);
       st.posts.push([x,z,lv]);
       legs(x,z,W/2);
       /* раскосы по виду сбоку: у крайних стоек — под фермой внутрь пролёта, у средних — верхние и нижние в обе стороны */
-      const inward=i===0?1:(i===2?-1:0), th=lowAt(z)?LOW:H1;
+      const inward=i===0?1:(i===2?-1:0), th=lowAt(z)||farOnly(z)?LOW:H1;
       const low=(sg)=>strut([x+sg*C,th-C-1.1],[x+sg*1.25,th-C],z);
       /* ТСК 2: укосины только от верхнего яруса к средней стойке — по паре с каждой стороны */
       const onlyTop=cfg.type===2;
       if(i!==1){ if(!onlyTop) low(inward); }
       else [-1,1].forEach(sg=>{ if(!onlyTop) low(sg); strut([x+sg*2.0,H1+C],[x+sg*C,H1+C+1.85],z); });
     }));
-    zs.forEach(z=>{ st.longit.push([z,H1,FX]); if(lowAt(z)) st.longit.push([z,LOW,FX]); });
+    zs.forEach(z=>{ if(!farOnly(z)) st.longit.push([z,H1,FX]); if(lowAt(z)||farOnly(z)) st.longit.push([z,LOW,FX]); });
     st.cross.push([0,H1,zs],[XM,H2,zs],[L,H1,zs]);
-    const hs=FX.map((_,i)=>[...new Set(lanes.flatMap(l=>(l.k>=2?BARS2:BARS1)[i]))]);
-    FX.forEach((x,i)=>hs[i].forEach(h=>st.pipes.push([PX[i],h,-W/2-0.45,W/2+0.45,x,zs])));
+    /* Горизонтальная опора на каждой высоте — только через полосы, которым она нужна (у комби 2,234 м — лишь в полосе «как ТСК 2») */
+    FX.forEach((x,i)=>{ const need={};
+      lanes.forEach(l=>(l.k>=2?BARS2:BARS1)[i].forEach(h=>{ const r=need[h]||[l.z0,l.z1]; need[h]=[Math.min(r[0],l.z0),Math.max(r[1],l.z1)]; }));
+      Object.entries(need).forEach(([h,[z0,z1]])=>st.pipes.push([PX[i],+h,z0===-W/2?z0-0.45:z0-0.45,z1+0.45,x,zs.filter(z=>z>=z0-1e-6&&z<=z1+1e-6)])); });
     lanes.forEach(l=>{
       const b=l.k>=2?BARS2:BARS1, top=b[1][b[1].length-1], w=l.z1-l.z0, n=combi?Math.max(2,Math.round(cfg.n/2)):cfg.n;
       const [a,m,e]=PX;
