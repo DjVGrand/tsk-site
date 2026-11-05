@@ -1028,8 +1028,10 @@ function mount3D(box,cfg){
     if(sp.autoBraces) sp.posts.forEach(([x,z,lv])=>{   // укосины по тому же правилу, что у остальных моделей
       const i=xs.indexOf(x), lev=[...lv].sort((p,q)=>p-q), th=lev[0], inw=i===0?1:(i===xs.length-1?-1:0);
       const low=sg=>strut([x+sg*C,th-C-1.1],[x+sg*1.25,th-C],z);
-      const onlyTop=sp.autoBraces==="top";
-      if(inw){ if(!onlyTop) low(inw); } else [-1,1].forEach(sg=>{ if(!onlyTop) low(sg); const up=lev[lev.length-2]; strut([x+sg*2.0,up+C],[x+sg*C,up+C+1.85],z); });
+      /* "top" — как ТСК 2; "kombi" — дальняя линия (минимальный z) как ТСК 1 от нижнего яруса, остальные как ТСК 2 */
+      const far=sp.autoBraces==="kombi"&&Math.abs(z-Math.min(...sp.posts.map(q=>q[1])))<1e-6;
+      const onlyTop=sp.autoBraces==="top"||(sp.autoBraces==="kombi"&&!far);
+      if(inw){ if(!onlyTop) low(inw); } else [-1,1].forEach(sg=>{ if(!onlyTop) low(sg); const up=far?th:lev[lev.length-2]; strut([x+sg*2.0,up+C],[x+sg*C,up+C+1.85],z); });
     });
   } else {
     const FX=[0,XM,L], PX=[-PO,XM+PO,L+PO];
@@ -1041,10 +1043,11 @@ function mount3D(box,cfg){
       /* раскосы по виду сбоку: у крайних стоек — под фермой внутрь пролёта, у средних — верхние и нижние в обе стороны */
       const inward=i===0?1:(i===2?-1:0), th=lowAt(z)||farOnly(z)?LOW:H1;
       const low=(sg)=>strut([x+sg*C,th-C-1.1],[x+sg*1.25,th-C],z);
-      /* ТСК 2: укосины только от верхнего яруса к средней стойке — по паре с каждой стороны */
-      const onlyTop=cfg.type===2;
+      /* Укосины. ТСК 2 и линии комби с полосой «как ТСК 2»: только от верхнего яруса к средней стойке, по паре с каждой стороны.
+         ТСК 1 и дальняя линия комби: снизу под фермой (у крайних стоек — внутрь пролёта), у средней стойки — ещё от яруса вверх, по паре с каждой стороны. */
+      const onlyTop=cfg.type===2||(combi&&!farOnly(z)), tier=farOnly(z)?LOW:H1;
       if(i!==1){ if(!onlyTop) low(inward); }
-      else [-1,1].forEach(sg=>{ if(!onlyTop) low(sg); strut([x+sg*2.0,H1+C],[x+sg*C,H1+C+1.85],z); });
+      else [-1,1].forEach(sg=>{ if(!onlyTop) low(sg); strut([x+sg*2.0,tier+C],[x+sg*C,tier+C+1.85],z); });
     }));
     zs.forEach(z=>{ if(!farOnly(z)) st.longit.push([z,H1,FX]); if(lowAt(z)||farOnly(z)) st.longit.push([z,LOW,FX]); });
     st.cross.push([0,H1,zs],[XM,H2,zs],[L,H1,zs]);
