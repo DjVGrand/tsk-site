@@ -69,10 +69,8 @@ function seoHead(page, pg) {
   pg = pg || PAGES[0];
   const m = meta(pg), url = page === "winter" ? base + "winter/" : base + pg.path;
   const ld = [org];
-  if (pg.product) { const p = pg.product, im = (p.schemes || [])[0] || (p.photos || [])[0];
-    ld.push({ "@context": "https://schema.org", "@type": "Product", name: p.name, description: p.desc, url,
-      brand: { "@type": "Organization", name: org.name }, manufacturer: { "@type": "Organization", name: org.name },
-      image: im ? abs(typeof im === "string" ? im : (im.src || im[1] || "")) : undefined, category: "Оборудование для спортивного туризма" }); }
+  // Разметку Product (schema.org) не ставим: Google требует для неё цену (offers) или отзывы/рейтинг,
+  // а цены у нас «по запросу» и отзывов на сайте нет — без них товарная разметка считается ошибкой.
   if (pg.key !== "home" && page !== "winter") {
     const items = [{ n: "Главная", u: base }];
     if (pg.product) items.push({ n: "Каталог", u: base + "catalog/" });
