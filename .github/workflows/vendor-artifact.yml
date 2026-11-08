@@ -1,10 +1,15 @@
-# Служебный: выгружает three.js как артефакт (для локальной отрисовки картинок моделей)
-name: Служебный — three.js артефакт
+# Служебный: кладёт three.js в ветку tools-vendor (для локальной отрисовки картинок моделей)
+name: Служебный — three.js в ветку
 on: workflow_dispatch
+permissions: { contents: write }
 jobs:
   pack:
     runs-on: ubuntu-latest
     steps:
-      - run: mkdir v && cd v && npm i --no-save three@0.128.0 && cp node_modules/three/build/three.min.js node_modules/three/examples/js/controls/OrbitControls.js .
-      - uses: actions/upload-artifact@v4
-        with: { name: three, path: "v/*.js", retention-days: 1 }
+      - uses: actions/checkout@v4
+      - run: |
+          mkdir -p /tmp/v && cd /tmp/v && npm i --no-save three@0.128.0
+          cd $GITHUB_WORKSPACE && git checkout --orphan tools-vendor && git rm -rfq . && mkdir v
+          cp /tmp/v/node_modules/three/build/three.min.js /tmp/v/node_modules/three/examples/js/controls/OrbitControls.js v/
+          git config user.name "github-actions" && git config user.email "actions@github.com"
+          git add v && git commit -qm "three.js r128" && git push -f origin tools-vendor
