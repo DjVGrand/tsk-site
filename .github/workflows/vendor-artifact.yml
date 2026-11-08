@@ -1,0 +1,10 @@
+# Служебный: выгружает three.js как артефакт (для локальной отрисовки картинок моделей)
+name: Служебный — three.js артефакт
+on: workflow_dispatch
+jobs:
+  pack:
+    runs-on: ubuntu-latest
+    steps:
+      - run: mkdir v && cd v && npm i --no-save three@0.128.0 && cp node_modules/three/build/three.min.js node_modules/three/examples/js/controls/OrbitControls.js .
+      - uses: actions/upload-artifact@v4
+        with: { name: three, path: "v/*.js", retention-days: 1 }
